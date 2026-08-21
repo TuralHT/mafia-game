@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mafia Game</title>
+    <!-- Firebase SDK Modulları -->
+    <script type="module">
+        import { initializeApp } from "https://gstatic.com";
+        import { getDatabase, ref, set, push, onValue, update, remove } from "https://gstatic.com";
+
+        // Sizin rəsmi Firebase şifrələriniz bura daxil edildi
+        const firebaseConfig = {
+            apiKey: "AIzaSyDsli38Wla_awVmZaA3lxPSNlyBobQTY-g",
+            authDomain: "://firebaseapp.com",
+            databaseURL: "https://firebasedatabase.app",
+            projectId: "mafia-game-b6bf7",
+            storageBucket: "mafia-game-b6bf7.firebasestorage.app",
+            messagingSenderId: "1024612537793",
+            appId: "1:1024612537793:web:fb425689a6e3695c2e0b40"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let currentUser = null;
+        let selectedChatUsers = [];
+
+        // Səhifələri bir-birinə bağlayan əsas funksiya
+        window.showPage = function(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.style.display = 'none');
+            document.getElementById(pageId).style.display = 'block';
+        };
+        // --- SƏHİFƏ A: GİRİŞ SİSTEMİ ---
+        window.login = function() {
+            const name = document.getElementById('loginName').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+
+            if(name === 'admin' && pass === 'admin123') {
+                window.showPage('pageAdmin');
+                return;
+            }
+
+            onValue(ref(db, 'activePlayers'), (snapshot) => {
+                const players = snapshot.val();
+                let found = false;
+                for(let id in players) {
+                    if(players[id].name === name && players[id].password === pass) {
+                        currentUser = players[id];
+                        currentUser.id = id;
+                        found = true;
+                        document.getElementById('cabinetAvatar').src = currentUser.photo || 'https://placeholder.com';
+                        document.getElementById('secretRoleText').innerText = currentUser.role || 'Hələ təyin edilməyib';
+                        window.showPage('pagePlayer');
+                        initChat();
+                        break;
+                    }
+                }
+                if(!found && name !== 'admin') {
+                    alert('Ad və ya parol yanlışdır, yaxud admin sizi oyuna əlavə etməyib!');
+                }
+            }, { onlyOnce: true });
+        };
+
+        // --- SƏHİFƏ B: ADMİN PANELİ FUNKSİYALARI ---
+        window.addPlayer = function() {
+            const name = document.getElementById('adminPlayerName').value.trim();
+            const pass = document.getElementById('adminPlayerPass').value.trim();
+            const photo = document.getElementById('adminPlayerPhoto').value.trim();
+
+            if(!name || !pass) return alert('Ad və parol mütləqdir!');
+
+            const playerData = { name, password: pass, photo: photo || 'https://placeholder.com', role: "Mülki" };
+            
+            push(ref(db, 'activePlayers'), playerData);
+            set(ref(db, 'archive/' + name), playerData);
+
+            document.getElementById('adminPlayerName').value = '';
+            document.getElementById('adminPlayerPass').value = '';
+            document.getElementById('adminPlayerPhoto').value = '';
+        };
+
+        window.addRoleSetting = function() {
+            const roleName = document.getElementById('roleNameInput').value.trim();
+            const roleCount = parseInt(document.getElementById('roleCountInput').value);
+
+            if(!roleName || isNaN(roleCount)) return alert('Məlumatları tam doldurun!');
+
+            set(ref(db, 'roleSettings/' + roleName), roleCount);
+            document.getElementById('roleNameInput').value = '';
+            document.getElementById('roleCountInput').value = '';
+        };
+
+        window.removePlayer = function(id) { remove(ref(db, 'activePlayers/' + id)); };
+        window.removeRole = function(name) { remove(ref(db, 'roleSettings/' + name)); };
+        window.addFromArchive = function(name) {
+            onValue(ref(db, 'archive/' + name), (snapshot) => {
+                push(ref(db, 'activePlayers'), snapshot.val());
+            }, { onlyOnce: true });
+        };
+        // Admin üçün bazadan gələn məlumatları canlı dinləyənlər
+        onValue(ref(db, 'activePlayers'), (snapshot) => {
+            const listDiv = document.getElementById('activePlayersList');
+            if(!listDiv) return;
+            listDiv.innerHTML = '';
+            const players = snapshot.val();
+            if(players) {
+                for(let id in players) {
+                    listDiv.innerHTML += `<div>
+                        <img src="${players[id].photo}" width="30"> 
+                        <b>${players[id].name}</b> (${players[id].role})
+                        <button onclick="removePlayer('${id}')">Sil</button>
+                    </div>`;
+                }
+            }
+        });
+
+        onValue(ref(db, 'archive'), (snapshot) => {
+            const archiveDiv = document.getElementById('archiveList');
+            if(!archiveDiv) return;
+            archiveDiv.innerHTML = '';
+            const archive = snapshot.val();
+            if(archive) {
+                for(let name in archive) {
+                    archiveDiv.innerHTML += `<div style="cursor:pointer;" onclick="addFromArchive('${name}')">
+                        📁 ${name} (Bərpa etmək üçün toxun)
+                    </div>`;
+                }
+            }
+        });
+
+        onValue(ref(db, 'roleSettings'), (snapshot) => {
+            const rolesDiv = document.getElementById('rolesConfigList');
+            if(!rolesDiv) return;
+            rolesDiv.innerHTML = '';
+            const roles = snapshot.val();
+            if(roles) {
+                for(let rName in roles) {
+                    rolesDiv.innerHTML += `<div>⚙️ ${rName}: ${roles[rName]} ədəd <button onclick="removeRole('${rName}')">X</button></div>`;
+                }
+            }
+        });
+
+        // --- SƏHİFƏ D: VƏZİFƏ TƏYİN ETMA SİSTEMİ (TAYMER VƏ ALQORİTM) ---
+        onValue(ref(db, 'gameStatus/buttonState'), (snapshot) => {
+            const state = snapshot.val();
+            const btn = document.getElementById('btnAssignRoles');
+            if(!btn) return;
+            if(state === 'used') {
+                btn.disabled = true;
+                btn.innerText = "Vəzifələr Paylanıb";
+            } else {
+                onValue(ref(db, 'activePlayers'), (pSnap) => {
+                    const count = pSnap.val() ? Object.keys(pSnap.val()).length : 0;
+                    if(count >= 5) {
+                        btn.disabled = false;
+                        btn.innerText = "Vəzifələri təyin et";
+                    } else {
+                        btn.disabled = true;
+                        btn.innerText = "Vəzifələri təyin et (Min. 5 oyunçu)";
+                    }
+                }, { onlyOnce: true });
+            }
+        });
+
+        window.startRoleAssignment = function() {
+            let seconds = 5;
+            const btn = document.getElementById('btnAssignRoles');
+            const timerDiv = document.getElementById('assignTimer');
+            
+            btn.disabled = true;
+            timerDiv.innerText = seconds + " saniyə";
+
+            const interval = setInterval(() => {
+                seconds--;
+                timerDiv.innerText = seconds + " saniyə";
+                if(seconds <= 0) {
+                    clearInterval(interval);
+                    timerDiv.innerText = "";
+                    executeRandomAssignment();
+                }
+            }, 1000);
+        };
+
+        function executeRandomAssignment() {
+            onValue(ref(db, 'activePlayers'), (pSnap) => {
+                onValue(ref(db, 'roleSettings'), (rSnap) => {
+                    const players = pSnap.val();
+                    const rolesConfig = rSnap.val();
+                    
+                    if(!players || !rolesConfig) return alert("Oyunçular və ya vəzifə parametrləri tapılmadı!");
+
+                    let playerIds = Object.keys(players);
+                    let rolePool = [];
+
+                    for(let rName in rolesConfig) {
+                        for(let i=0; i<rolesConfig[rName]; i++) {
+                            rolePool.push(rName);
+                        }
+                    }
+
+                    while(rolePool.length < playerIds.length) {
+                        rolePool.push("Mülki");
+                    }
+
+                    for (let i = rolePool.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [rolePool[i], rolePool[j]] = [rolePool[j], rolePool[i]];
+                    }
+
+                    let updates = {};
+                    playerIds.forEach((id, index) => {
+                        updates[`activePlayers/${id}/role`] = rolePool[index];
+                    });
+                    updates['gameStatus/buttonState'] = 'used';
+                    
+                    update(ref(db), updates).then(() => {
+                        alert("Vəzifələr uğurla paylandı!");
+                    });
+
+                }, { onlyOnce: true });
+            }, { onlyOnce: true });
+        }
+        // --- YENİ OYUN SIFIRLAMA MƏNTİQİ ---
+        window.triggerNewGame = function() {
+            document.getElementById('confirmModal').style.display = 'block';
+        };
+
+        window.confirmNewGame = function(ans) {
+            document.getElementById('confirmModal').style.display = 'none';
+            if(ans) {
+                set(ref(db, 'gameStatus/buttonState'), 'active');
+                onValue(ref(db, 'activePlayers'), (snapshot) => {
+                    const players = snapshot.val();
+                    let updates = {};
+                    for(let id in players) {
+                        updates[`activePlayers/${id}/role`] = "Mülki";
+                    }
+                    update(ref(db), updates);
+                }, { onlyOnce: true });
+            }
+        };
+
+        // --- SƏHİFƏ C: OYUNÇU KABİNETİ VƏ ÇAT FUNKSİYALARI ---
+        window.toggleRolePanel = function() {
+            const panel = document.getElementById('secretRolePanel');
+            if(panel.style.left === '0px') {
+                panel.style.left = '-200px';
+            } else {
+                panel.style.left = '0px';
+            }
+        };
+
+        function initChat() {
+            onValue(ref(db, 'activePlayers'), (snapshot) => {
+                const container = document.getElementById('chatUsersList');
+                if(!container) return;
+                container.innerHTML = '';
+                const players = snapshot.val();
+                if(players) {
+                    for(let id in players) {
+                        if(id === currentUser.id) continue;
+                        container.innerHTML += `
+                            <div class="chat-user-card" id="userCard_${id}" onclick="toggleSelectUser('${id}')" style="display:inline-block; margin:5px; text-align:center;">
+                                <div style="position:relative;">
+                                    <img src="${players[id].photo}" width="50" style="border-radius:50%;">
+                                    <span style="position:absolute; bottom:0; left:0; width:100%; background:rgba(0,0,0,0.6); color:white; font-size:10px;">${players[id].name}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            });
+
+            onValue(ref(db, 'messages'), (snapshot) => {
+                const box = document.getElementById('chatMessagesBox');
+                if(!box) return;
+                box.innerHTML = '';
+                const messages = snapshot.val();
+                if(messages) {
+                    for(let msgId in messages) {
+                        const msg = messages[msgId];
+                        if(msg.target === 'all' || msg.target.includes(currentUser.id) || msg.senderId === currentUser.id) {
+                            box.innerHTML += `
+                                <div style="margin: 5px; display:flex; align-items:center;">
+                                    <img src="${msg.senderPhoto}" width="30" style="border-radius:50%; margin-right:5px;">
+                                    <div>
+                                        <small><b>${msg.senderName}</b> -> ${msg.targetName}</small><br>
+                                        <span>${msg.text}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                    box.scrollTop = box.scrollHeight;
+                }
+            });
+        }
+
+        window.toggleSelectUser = function(id) {
+            const idx = selectedChatUsers.indexOf(id);
+            const card = document.getElementById(`userCard_${id}`);
+            if(idx > -1) {
+                selectedChatUsers.splice(idx, 1);
+                if(card) card.style.border = "none";
+            } else {
+                selectedChatUsers.push(id);
+                if(card) card.style.border = "2px solid red";
+            }
+        };
+
+        window.sendMessage = function() {
+            const text = document.getElementById('chatInputText').value.trim();
+            if(!text) return;
+
+            let target = 'all';
+            let targetName = 'Hamı';
+
+            if(selectedChatUsers.length > 0) {
+                target = selectedChatUsers;
+                targetName = "Özəl Mesaj";
+            }
+
+            const msgData = {
+                senderId: currentUser.id,
+                senderName: currentUser.name,
+                senderPhoto: currentUser.photo,
+                text: text,
+                target: target,
+                targetName: targetName,
+                timestamp: Date.now()
+            };
+
+            push(ref(db, 'messages'), msgData);
+            document.getElementById('chatInputText').value = '';
+            
+            selectedChatUsers = [];
+            document.querySelectorAll('.chat-user-card').forEach(c => c.style.border = "none");
+        };
+    </script>
+    <style>
+        /* Təməl görünüş parametrləri (Claude bura möhtəşəm dizayn verəcək) */
+        /* ====== ƏSAS DƏYİŞƏNLƏR (Rənglər, keçidlər) ====== */
+        :root {
+            --bg-primary: #0a0e27;       /* Dərin gecə mavisi - əsas fon */
+            --bg-secondary: #131a3a;     /* Bir az açıq mavi - kartlar üçün */
+            --bg-card: #1a2248;          /* Kart daxili fon */
+            --gold: #d4af7a;             /* Yumşaq pastel qızılı */
+            --gold-light: #e8cca0;       /* Açıq qızılı - hover üçün */
+            --gold-dark: #b8935f;        /* Tünd qızılı - kölgə üçün */
+            --text-main: #f5f5f7;        /* Təmiz ağ mətn */
+            --text-soft: #a8adc7;        /* Açıq boz mətn */
+            --border-soft: rgba(212, 175, 122, 0.25);
+            --shadow-glow: rgba(212, 175, 122, 0.15);
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 8px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ====== ÜMUMİ RESET VƏ FON ====== */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(160deg, #0a0e27 0%, #0d1230 50%, #0a0e27 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        .page {
+            display: none;
+            padding: 20px;
+            animation: fadeIn 0.4s ease;
+        }
+
+        #pageLogin { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ====== ÜMUMİ INPUT VƏ BUTTON STİLLƏRİ ====== */
+        input[type="text"],
+        input[type="password"],
+        input[type="number"] {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-soft);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+            width: 100%;
+            max-width: 280px;
+        }
+
+        input::placeholder {
+            color: var(--text-soft);
+        }
+
+        input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px var(--shadow-glow);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            color: #14172b;
+            border: none;
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 14px rgba(212, 175, 122, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 122, 0.35);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #3a3f5c;
+            color: var(--text-soft);
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* ====== SƏHİFƏ A: GİRİŞ EKRANI ====== */
+        #pageLogin {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Yuxarı sol küncdəki "Vəzifə təyin et" düyməsi - yaşıl, diqqətçəkən */
+        #pageLogin > button:first-of-type {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #4ade80, #16a34a);
+            color: #fff;
+            border-radius: var(--radius-sm);
+            padding: 10px 18px;
+            box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
+        }
+
+        #pageLogin > button:first-of-type:hover {
+            box-shadow: 0 6px 20px rgba(22, 163, 74, 0.45);
+        }
+
+        #pageLogin > div {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
+            padding: 40px 32px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 320px;
+        }
+
+        #pageLogin h2 {
+            color: var(--gold);
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 28px;
+        }
+
+        #pageLogin input {
+            max-width: 100%;
+            margin-bottom: 4px;
+        }
+
+        #pageLogin button:not(:first-of-type) {
+            width: 100%;
+            margin-top: 16px;
+            padding: 14px;
+            font-size: 15px;
+        }
+
+        /* ====== SƏHİFƏ B: ADMİN PANELİ ====== */
+        #pageAdmin h2 {
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        #pageAdmin > button {
+            display: block;
+            margin: 0 auto 20px auto;
+            background: var(--bg-card);
+            color: var(--gold);
+            border: 1px solid var(--border-soft);
+        }
+
+        /* İki hissəyə bölünmə - mobil üçün responsive */
+        .admin-split {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .admin-left, .admin-right {
+            width: 50%;
+            flex: 1 1 280px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .admin-left h3, .admin-right h3 {
+            color: var(--gold);
+            font-size: 16px;
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-soft);
+            padding-bottom: 10px;
+        }
+
+        .admin-left h4, .admin-right h4 {
+            color: var(--text-soft);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 20px;
+        }
+
+        .admin-left input, .admin-right input {
+            max-width: 100%;
+            margin-bottom: 10px;
+        }
+
+        /* Aktiv oyunçu və arxiv siyahısı - kart görünüşü */
+        #activePlayersList div, #archiveList div {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            border: 1px solid transparent;
+            transition: var(--transition);
+        }
+
+        #archiveList div {
+            cursor: pointer;
+        }
+
+        #archiveList div:hover {
+            border-color: var(--gold);
+            background: var(--bg-card);
+        }
+
+        #activePlayersList img {
+            border-radius: 50%;
+            border: 1px solid var(--gold);
+        }
+
+        #activePlayersList button {
+            margin-left: auto;
+            padding: 4px 10px;
+            font-size: 11px;
+            background: linear-gradient(135deg, #f87171, #dc2626);
+            color: #fff;
+        }
+
+        /* Vəzifə limitləri siyahısı */
+        #rolesConfigList div {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        #rolesConfigList button {
+            padding: 3px 9px;
+            font-size: 11px;
+            background: linear-gradient(135deg, #f87171, #dc2626);
+            color: #fff;
+        }
+
+        /* ====== SƏHİFƏ C: OYUNÇU KABİNETİ ====== */
+        #pagePlayer > div:first-child {
+            margin-bottom: 10px;
+        }
+
+        #cabinetAvatar {
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 12px var(--shadow-glow);
+        }
+
+        #pagePlayer > button:nth-of-type(2) {
+            background: var(--bg-card);
+            color: var(--gold);
+            border: 1px solid var(--border-soft);
+            width: 100%;
+            text-align: left;
+        }
+
+        /* Gizli, sürüşərək açılan vəzifə paneli */
+        #secretRolePanel {
+            position: fixed;
+            top: 0;
+            left: -220px;
+            width: 200px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
+            transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 18px;
+            box-shadow: 4px 0 25px rgba(0, 0, 0, 0.5);
+            border-right: 1px solid var(--border-soft);
+            z-index: 50;
+        }
+
+        #secretRolePanel h4 {
+            color: var(--gold);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 20px;
+        }
+
+        /* Vəzifə adı - kiçik, alt-alta, sadə hərflərlə */
+        #secretRoleText {
+            font-size: 13px;
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: 400;
+            color: var(--text-soft);
+            line-height: 1.8;
+            word-break: break-word;
+            background: var(--bg-card);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-soft);
+        }
+
+        #secretRolePanel > button {
+            background: transparent;
+            color: var(--text-soft);
+            box-shadow: none;
+            padding: 4px 0;
+        }
+
+        /* WhatsApp stilində çat bölməsi */
+        .chat-container {
+            border: 1px solid var(--border-soft);
+            height: 340px;
+            display: flex;
+            flex-direction: column;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            background: var(--bg-secondary);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            margin-top: 16px;
+        }
+
+        /* Oyunçu şəkilləri - üfüqi, sürüşdürülə bilən sıra */
+        #chatUsersList {
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 1px solid var(--border-soft);
+            padding: 10px;
+            background: var(--bg-card);
+            display: flex;
+            gap: 4px;
+        }
+
+        #chatUsersList::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        #chatUsersList::-webkit-scrollbar-thumb {
+            background: var(--gold-dark);
+            border-radius: 4px;
+        }
+
+        .chat-user-card img {
+            border: 2px solid transparent;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .chat-user-card img:hover {
+            transform: scale(1.05);
+        }
+
+        /* Seçilmiş oyunçu ətrafında qırmızı haşiyə */
+        .chat-user-card img[style*="border: 2px solid red"],
+        .chat-user-card img {
+            box-sizing: border-box;
+        }
+
+        /* Mesaj qutusu - WhatsApp üslubunda baloncuqlar */
+        #chatMessagesBox {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+            background: 
+                radial-gradient(circle at 20% 20%, rgba(212,175,122,0.03) 0%, transparent 50%),
+                var(--bg-primary);
+        }
+
+        #chatMessagesBox > div {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: 8px 12px !important;
+            margin: 8px 0 !important;
+            max-width: 80%;
+            border: 1px solid var(--border-soft);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        #chatMessagesBox img {
+            border: 1px solid var(--gold);
+        }
+
+        #chatMessagesBox small b {
+            color: var(--gold);
+        }
+
+        #chatMessagesBox small {
+            color: var(--text-soft);
+        }
+
+        #chatMessagesBox span {
+            color: var(--text-main);
+            font-size: 14px;
+        }
+
+        #chatMessagesBox::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        #chatMessagesBox::-webkit-scrollbar-thumb {
+            background: var(--gold-dark);
+            border-radius: 4px;
+        }
+
+        /* Mesaj yazma sahəsi */
+        .chat-container > div:last-child {
+            background: var(--bg-card);
+            padding: 8px;
+            border-top: 1px solid var(--border-soft);
+        }
+
+        #chatInputText {
+            flex: 1;
+            padding: 12px !important;
+            border-radius: 24px !important;
+            max-width: 100% !important;
+            background: var(--bg-secondary);
+        }
+
+        .chat-container button {
+            border-radius: 50% !important;
+            width: 44px;
+            height: 44px;
+            padding: 0 !important;
+            margin-left: 8px;
+            font-size: 16px;
+        }
+
+        /* ====== SƏHİFƏ D: VƏZİFƏ TƏYİN ETMƏ SƏHİFƏSİ ====== */
+        #pageAssignConfig {
+            position: relative;
+            min-height: 100vh;
+        }
+
+        #pageAssignConfig > button:first-of-type {
+            background: linear-gradient(135deg, #4ade80, #16a34a);
+            color: #fff;
+        }
+
+        #pageAssignConfig > button:nth-of-type(2) {
+            background: var(--bg-card);
+            color: var(--gold);
+            border: 1px solid var(--border-soft);
+        }
+
+        /* Böyük, dairəvi, parlaq qırmızı düymə */
+        #btnAssignRoles {
+            width: 200px !important;
+            height: 200px !important;
+            border-radius: 50% !important;
+            background: radial-gradient(circle at 35% 30%, #ff6b6b, #dc2626 65%, #a91d1d) !important;
+            color: #fff !important;
+            font-size: 17px !important;
+            font-weight: 700 !important;
+            border: none !important;
+            cursor: pointer;
+            box-shadow: 
+                0 0 0 8px rgba(220, 38, 38, 0.1),
+                0 15px 40px rgba(220, 38, 38, 0.4);
+            letter-spacing: 0.5px;
+            animation: pulseGlow 2.5s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0.1), 0 15px 40px rgba(220, 38, 38, 0.4); }
+            50% { box-shadow: 0 0 0 16px rgba(220, 38, 38, 0.05), 0 15px 50px rgba(220, 38, 38, 0.55); }
+        }
+
+        #btnAssignRoles:hover:not(:disabled) {
+            transform: scale(1.03);
+        }
+
+        #btnAssignRoles:disabled {
+            background: linear-gradient(135deg, #4a5070, #363c58) !important;
+            box-shadow: none;
+            animation: none;
+        }
+
+        /* Geri sayım - qırmızı rəqəm */
+        #assignTimer {
+            color: #ff6b6b;
+            font-size: 28px;
+            margin-top: 18px;
+            font-weight: 700;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        /* ====== TƏSDİQLƏMƏ MODALI (Yeni Oyun) ====== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 30%;
+            left: 10%;
+            width: 80%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--gold);
+            border-radius: var(--radius-lg);
+            padding: 28px 22px;
+            z-index: 100;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+            text-align: center;
+        }
+
+        .modal p {
+            color: var(--text-main);
+            font-size: 15px;
+            margin-bottom: 20px;
+        }
+
+        .modal button {
+            margin: 0 6px;
+            padding: 10px 24px;
+        }
+
+        .modal button:first-of-type {
+            background: linear-gradient(135deg, #f87171, #dc2626);
+            color: #fff;
+        }
+
+        .modal button:last-of-type {
+            background: var(--bg-card);
+            color: var(--text-soft);
+            border: 1px solid var(--border-soft);
+        }
+        body { font-family: sans-serif; margin: 0; padding: 0; }
+        .page { display: none; padding: 15px; }
+        #pageLogin { display: block; }
+        .admin-split { display: flex; }
+        .admin-left, .admin-right { width: 50%; padding: 10px; border: 1px solid #ccc; }
+        #secretRolePanel { position: fixed; top: 0; left: -200px; width: 180px; height: 100%; background: #eee; transition: 0.3s; padding: 10px; box-shadow: 2px 0 5px rgba(0,0,0,0.2); }
+        .chat-container { border: 1px solid #ddd; height: 300px; display: flex; flex-direction: column; }
+        #chatMessagesBox { flex: 1; overflow-y: auto; padding: 10px; }
+        #chatUsersList { overflow-x: auto; white-space: nowrap; border-bottom: 1px solid #eee; padding: 5px; }
+        .modal { display: none; position: fixed; top: 30%; left: 10%; width: 80%; background: white; border: 2px solid red; padding: 20px; z-index: 100; }
+    </style>
+</head>
+<body>
+
+    <div id="pageLogin" class="page">
+        <button style="background: green; color: white; padding: 10px;" onclick="showPage('pageAssignConfig')">Vəzifə təyin et</button>
+        <div style="text-align: center; margin-top: 50px;">
+            <h2>Mafia - Giriş</h2>
+            <input type="text" id="loginName" placeholder="Adınız"><br><br>
+            <input type="password" id="loginPass" placeholder="Parolunuz"><br><br>
+            <button onclick="login()">Daxil Ol</button>
+        </div>
+    </div>
+
+    <div id="pageAdmin" class="page">
+        <h2>Admin İdarəetmə Paneli</h2>
+        <button onclick="showPage('pageLogin')">⬅️ Çıxış</button>
+        <div class="admin-split">
+            <div class="admin-left">
+                <h3>Oyunçu Əlavə Et</h3>
+                <input type="text" id="adminPlayerName" placeholder="Oyunçu Adı"><br>
+                <input type="text" id="adminPlayerPass" placeholder="Parol"><br>
+                <input type="text" id="adminPlayerPhoto" placeholder="Şəkil Linki (URL)"><br><br>
+                <button onclick="addPlayer()">Oyuna Əlavə Et</button>
+                
+                <h4>Aktiv Oyunçular</h4>
+                <div id="activePlayersList"></div>
+
+                <h4>Oyunçu Arxivi (Yaddaş)</h4>
+                <div id="archiveList"></div>
+            </div>
+            
+            <div class="admin-right">
+                <h3>Vəzifə Limitlərini Quraşdır</h3>
+                <input type="text" id="roleNameInput" placeholder="Vəzifə adı (örn: Mafia)"><br>
+                <input type="number" id="roleCountInput" placeholder="Sayı"><br><br>
+                <button onclick="addRoleSetting()">Vəzifəni Siyahıya Əlavə Et</button>
+
+                <h4>Təyin Olunmuş Vəzifə Limitləri</h4>
+                <div id="rolesConfigList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pagePlayer" class="page">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <button onclick="showPage('pageLogin')">🚪 Çıxış</button>
+            <img id="cabinetAvatar" src="" width="60" style="border-radius: 50%;">
+        </div>
+
+        <button onclick="toggleRolePanel()" style="margin-top: 20px;">📋 Vəzifəni Göstər/Gizlə</button>
+        <div id="secretRolePanel">
+            <button onclick="toggleRolePanel()">❌ Bağla</button>
+            <h4>Sənin Vəzifən:</h4>
+            <div id="secretRoleText" style="font-size: 14px; font-family: monospace; text-transform: lowercase;"></div>
+        </div>
+
+        <h3>Canlı Çat</h3>
+        <div class="chat-container">
+            <div id="chatUsersList"></div>
+            <div id="chatMessagesBox"></div>
+            <div style="display: flex;">
+                <input type="text" id="chatInputText" placeholder="Mesaj yazın..." style="flex: 1; padding: 10px;">
+                <button onclick="sendMessage()" style="padding: 10px;">Göndər</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pageAssignConfig" class="page">
+        <button style="position: absolute; top: 15px; left: 15px;" onclick="triggerNewGame()">Yeni Oyun</button>
+        <button style="position: absolute; top: 15px; right: 15px;" onclick="showPage('pageLogin')">Geri</button>
+        
+        <div style="text-align: center; margin-top: 150px;">
+            <button id="btnAssignRoles" onclick="startRoleAssignment()" style="width: 200px; height: 200px; border-radius: 50%; background: red; color: white; font-size: 18px; font-weight: bold; border: none; cursor: pointer;">
+                Vəzifələri təyin et
+            </button>
+            <div id="assignTimer" style="color: red; font-size: 24px; margin-top: 15px; font-weight: bold;"></div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal">
+        <p>Əminsinizmi? Bu hər şeyi sıfırlayacaq.</p>
+        <button onclick="confirmNewGame(true)">Bəli</button>
+        <button onclick="confirmNewGame(false)">Yox</button>
+    </div>
+
+</body>
+</html>
