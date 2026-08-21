@@ -6,10 +6,10 @@
     <title>Mafia Game</title>
     <!-- Firebase SDK Modulları -->
     <script type="module">
+        // Firebase modullarını birbaşa brauzer yaddaşına yükləyirik
         import { initializeApp } from "https://gstatic.com";
         import { getDatabase, ref, set, push, onValue, update, remove } from "https://gstatic.com";
 
-        // Sizin rəsmi Firebase bağlantı məlumatlarınız tam inteqrasiya edildi
         const firebaseConfig = {
             apiKey: "AIzaSyDsli38Wla_awVmZaA3lxPSNlyBobQTY-g",
             authDomain: "://firebaseapp.com",
@@ -20,18 +20,22 @@
             appId: "1:1024612537793:web:fb425689a6e3695c2e0b40"
         };
 
-        // Firebase-i başladırıq
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
         let currentUser = null;
         let selectedChatUsers = [];
 
-        // Səhifə keçid xətasını aradan qaldıran əsas funksiya
+        // DÜYMƏLƏRİ CANLANDIRAN ƏSAS FUNKSİYA:
+        // Artıq brauzer bu funksiyanı birbaşa tanıyacaq və keçidlər işləyəcək!
         window.showPage = function(pageId) {
-            document.querySelectorAll('.page').forEach(page => page.style.display = 'none');
-            const targetPage = document.getElementById(pageId);
-            if(targetPage) targetPage.style.display = 'block';
+            document.querySelectorAll('.page').forEach(page => {
+                page.style.display = 'none';
+            });
+            const target = document.getElementById(pageId);
+            if(target) {
+                target.style.display = 'block';
+            }
         };
         // --- SƏHİFƏ A: GİRİŞ SİSTEMİ ---
         window.login = function() {
@@ -63,6 +67,7 @@
                 }
             }, { onlyOnce: true });
         };
+
         // --- SƏHİFƏ B: ADMİN PANELİ FUNKSİYALARI ---
         window.addPlayer = function() {
             const name = document.getElementById('adminPlayerName').value.trim();
@@ -141,6 +146,7 @@
                 }
             }
         });
+
         // --- SƏHİFƏ D: VƏZİFƏ TƏYİN ETMA SİSTEMİ (DÜYMƏ VƏ TAYMER) ---
         onValue(ref(db, 'gameStatus/buttonState'), (snapshot) => {
             const state = snapshot.val();
@@ -222,6 +228,7 @@
                 }, { onlyOnce: true });
             }, { onlyOnce: true });
         }
+
         // --- YENİ OYUN SIFIRLAMA MƏNTİQİ ---
         window.triggerNewGame = function() {
             document.getElementById('confirmModal').style.display = 'block';
@@ -242,7 +249,7 @@
             }
         };
 
-        // --- SƏHİFƏ C: OYUNÇU KABİNETİ FUNKSİYALARI ---
+        // --- SƏHİFƏ C: OYUNÇU KABİNETİ VƏ ÇAT ---
         window.toggleRolePanel = function() {
             const panel = document.getElementById('secretRolePanel');
             if(!panel) return;
@@ -252,6 +259,7 @@
                 panel.style.left = '0px';
             }
         };
+
         function initChat() {
             onValue(ref(db, 'activePlayers'), (snapshot) => {
                 const container = document.getElementById('chatUsersList');
