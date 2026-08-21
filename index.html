@@ -9,7 +9,7 @@
         import { initializeApp } from "https://gstatic.com";
         import { getDatabase, ref, set, push, onValue, update, remove } from "https://gstatic.com";
 
-        // Sizin rəsmi Firebase şifrələriniz bura daxil edildi
+        // Sizin rəsmi Firebase bağlantı məlumatlarınız tam inteqrasiya edildi
         const firebaseConfig = {
             apiKey: "AIzaSyDsli38Wla_awVmZaA3lxPSNlyBobQTY-g",
             authDomain: "://firebaseapp.com",
@@ -20,16 +20,18 @@
             appId: "1:1024612537793:web:fb425689a6e3695c2e0b40"
         };
 
+        // Firebase-i başladırıq
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
         let currentUser = null;
         let selectedChatUsers = [];
 
-        // Səhifələri bir-birinə bağlayan əsas funksiya
+        // Səhifə keçid xətasını aradan qaldıran əsas funksiya
         window.showPage = function(pageId) {
             document.querySelectorAll('.page').forEach(page => page.style.display = 'none');
-            document.getElementById(pageId).style.display = 'block';
+            const targetPage = document.getElementById(pageId);
+            if(targetPage) targetPage.style.display = 'block';
         };
         // --- SƏHİFƏ A: GİRİŞ SİSTEMİ ---
         window.login = function() {
@@ -61,7 +63,6 @@
                 }
             }, { onlyOnce: true });
         };
-
         // --- SƏHİFƏ B: ADMİN PANELİ FUNKSİYALARI ---
         window.addPlayer = function() {
             const name = document.getElementById('adminPlayerName').value.trim();
@@ -140,8 +141,7 @@
                 }
             }
         });
-
-        // --- SƏHİFƏ D: VƏZİFƏ TƏYİN ETMA SİSTEMİ (TAYMER VƏ ALQORİTM) ---
+        // --- SƏHİFƏ D: VƏZİFƏ TƏYİN ETMA SİSTEMİ (DÜYMƏ VƏ TAYMER) ---
         onValue(ref(db, 'gameStatus/buttonState'), (snapshot) => {
             const state = snapshot.val();
             const btn = document.getElementById('btnAssignRoles');
@@ -168,6 +168,8 @@
             const btn = document.getElementById('btnAssignRoles');
             const timerDiv = document.getElementById('assignTimer');
             
+            if(!btn || btn.disabled) return;
+            
             btn.disabled = true;
             timerDiv.innerText = seconds + " saniyə";
 
@@ -181,7 +183,6 @@
                 }
             }, 1000);
         };
-
         function executeRandomAssignment() {
             onValue(ref(db, 'activePlayers'), (pSnap) => {
                 onValue(ref(db, 'roleSettings'), (rSnap) => {
@@ -241,16 +242,16 @@
             }
         };
 
-        // --- SƏHİFƏ C: OYUNÇU KABİNETİ VƏ ÇAT FUNKSİYALARI ---
+        // --- SƏHİFƏ C: OYUNÇU KABİNETİ FUNKSİYALARI ---
         window.toggleRolePanel = function() {
             const panel = document.getElementById('secretRolePanel');
+            if(!panel) return;
             if(panel.style.left === '0px') {
                 panel.style.left = '-200px';
             } else {
                 panel.style.left = '0px';
             }
         };
-
         function initChat() {
             onValue(ref(db, 'activePlayers'), (snapshot) => {
                 const container = document.getElementById('chatUsersList');
@@ -259,7 +260,7 @@
                 const players = snapshot.val();
                 if(players) {
                     for(let id in players) {
-                        if(id === currentUser.id) continue;
+                        if(currentUser && id === currentUser.id) continue;
                         container.innerHTML += `
                             <div class="chat-user-card" id="userCard_${id}" onclick="toggleSelectUser('${id}')" style="display:inline-block; margin:5px; text-align:center;">
                                 <div style="position:relative;">
@@ -280,7 +281,7 @@
                 if(messages) {
                     for(let msgId in messages) {
                         const msg = messages[msgId];
-                        if(msg.target === 'all' || msg.target.includes(currentUser.id) || msg.senderId === currentUser.id) {
+                        if(currentUser && (msg.target === 'all' || msg.target.includes(currentUser.id) || msg.senderId === currentUser.id)) {
                             box.innerHTML += `
                                 <div style="margin: 5px; display:flex; align-items:center;">
                                     <img src="${msg.senderPhoto}" width="30" style="border-radius:50%; margin-right:5px;">
@@ -311,7 +312,7 @@
 
         window.sendMessage = function() {
             const text = document.getElementById('chatInputText').value.trim();
-            if(!text) return;
+            if(!text || !currentUser) return;
 
             let target = 'all';
             let targetName = 'Hamı';
