@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mafia Game</title>
-    <!-- Firebase SDK v9 (Compat) -->
+    <title>Mafia Premium Control</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
-        /* --- Premium Canlı Interyer & Premium Qaranlıq Dizayn --- */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { background: #0a0a0a; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         .page { display: none; width: 100vw; height: 100vh; position: relative; }
@@ -16,24 +14,19 @@
         
         /* Səhifə A: Giriş */
         #page-a { background: radial-gradient(circle, #1a1a1a 0%, #050505 100%); justify-content: center; align-items: center; }
-        .login-btn-top { position: absolute; top: 15px; left: 15px; background: #27ae60; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; z-index: 10; }
+        .login-btn-top { position: absolute; top: 15px; left: 15px; background: #27ae60; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 14px; }
         .login-box { background: rgba(20, 20, 20, 0.9); padding: 30px; border-radius: 8px; border: 1px solid #333; width: 90%; max-width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.7); text-align: center; }
         .login-box h2 { margin-bottom: 20px; color: #ff3333; letter-spacing: 2px; }
-        .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; font-size: 16px; outline: none; }
-        .login-box button { width: 100%; padding: 12px; background: #ff3333; border: none; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 16px; margin-bottom: 10px; }
-        .register-link-btn { background: none; border: none; color: #5288c1; text-decoration: underline; cursor: pointer; font-size: 14px; font-weight: bold; }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; font-size: 16px; }
+        .login-box button { width: 100%; padding: 12px; background: #ff3333; border: none; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        .register-link { color: #5288c1; text-decoration: none; display: inline-block; margin-top: 15px; font-size: 14px; cursor: pointer; }
         
-        /* Üzən Qeydiyyat Pəncərəsi (Modal kimi) */
+        /* Üzən Qeydiyyat Pəncərəsi */
         .register-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; }
-        .register-box { background: #141414; padding: 25px; border-radius: 8px; border: 1px solid #ff3333; width: 90%; max-width: 360px; box-shadow: 0 0 20px rgba(255,51,51,0.3); text-align: center; }
-        .register-box h3 { margin-bottom: 15px; color: #ff3333; letter-spacing: 1px; }
-        .register-box input { width: 100%; padding: 10px; margin-bottom: 12px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; font-size: 15px; outline: none; }
-        .reg-file-label { display: block; width: 100%; padding: 10px; background: #34495e; color: white; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; margin-bottom: 8px; text-align: center; }
-        .reg-cam-btn { display: block; width: 100%; padding: 10px; background: #2c3e50; color: white; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; margin-bottom: 12px; border: none; }
-        .reg-preview { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; display: none; margin: 5px auto 12px auto; border: 1px solid #ff3333; }
-        .register-box .btn-row { display: flex; gap: 10px; }
-        .register-box .btn-row button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
-        
+        .register-box { background: #151515; padding: 25px; border-radius: 8px; border: 1px solid #333; width: 90%; max-width: 360px; position: relative; }
+        .close-reg-btn { position: absolute; top: 10px; right: 15px; font-size: 22px; color: #aaa; cursor: pointer; }
+        .register-box h3 { margin-bottom: 15px; color: #ff3333; text-align: center; }
+
         /* Səhifə B: Admin Paneli */
         #page-b { display: none; flex-direction: row; height: 100vh; }
         #page-b.active { display: flex; }
@@ -42,8 +35,8 @@
         .admin-right { background: #151515; }
         .admin-section { background: #1e1e1e; padding: 15px; border-radius: 6px; border: 1px solid #2a2a2a; }
         .admin-section h3 { margin-bottom: 10px; color: #ff3333; border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 16px; }
-        .admin-form input { width: 100%; padding: 8px; margin-bottom: 8px; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 4px; }
-        .admin-form button, .btn-action { width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .admin-form input, .register-box input { width: 100%; padding: 8px; margin-bottom: 8px; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 4px; }
+        .admin-form button, .btn-action, .register-box button { width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
         .btn-action.danger { background: #c0392b; }
         .player-item, .archive-item, .role-item { display: flex; align-items: center; justify-content: space-between; background: #252525; padding: 8px; border-radius: 4px; margin-bottom: 5px; font-size: 14px; }
         .player-item img, .archive-item img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
@@ -53,14 +46,19 @@
         .role-controls { display: flex; align-items: center; gap: 5px; }
         .role-controls button { width: 25px; height: 25px; background: #444; border: none; color: white; font-weight: bold; border-radius: 3px; cursor: pointer; }
         
-        /* Kamera və Şəkil Yükləmə Bölməsi */
-        .upload-options-row { display: flex; gap: 8px; margin-bottom: 8px; }
-        .upload-options-row button, .upload-options-row label { flex: 1; padding: 10px; background: #34495e; color: white; border: none; border-radius: 4px; font-weight: bold; font-size: 12px; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .camera-container { display: none; flex-direction: column; align-items: center; gap: 10px; background: #222; padding: 10px; border-radius: 6px; margin-top: 5px; }
-        video { width: 100%; max-width: 240px; background: #000; border-radius: 4px; transform: scaleX(-1); }
+        /* Kamera və Qalereya Bölməsi */
+        .camera-container { display: none; flex-direction: column; align-items: center; gap: 10px; background: #222; padding: 10px; border-radius: 6px; margin-top: 5px; position: relative; }
+        .video-wrapper { position: relative; width: 100%; max-width: 240px; height: 240px; background: #000; border-radius: 50%; overflow: hidden; margin: 0 auto; border: 3px dashed #ff3333; }
+        #video, #video-reg { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        .biometric-guide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 4px solid transparent; border-radius: 50%; box-shadow: 0 0 0 999px rgba(0,0,0,0.5); pointer-events: none; }
+        .biometric-guide::before { content: "ÜZÜ DAİRƏYƏ DAXİL EDİN"; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: bold; color: #ff3333; width: 100%; text-align: center; text-shadow: 0 1px 3px #000; letter-spacing: 1px; }
+        .biometric-status { font-size: 11px; text-align: center; margin-top: -5px; font-weight: bold; }
+        .status-scanning { color: #e67e22; }
+        .status-ready { color: #27ae60; }
         .camera-btns { display: flex; gap: 10px; width: 100%; }
         .camera-btns button { flex: 1; padding: 8px; font-size: 12px; }
         .img-preview { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; display: none; margin: 5px auto; border: 1px solid #555; }
+        .file-label { display: block; text-align: center; padding: 8px; background: #34495e; color: white; border-radius: 4px; font-size: 13px; font-weight: bold; margin-bottom: 5px; cursor: pointer; }
 
         /* Səhifə C: Oyunçu Kabineti */
         #page-c { background: #0e1621; height: 100vh; overflow: hidden; display: none; }
@@ -69,7 +67,7 @@
         .player-header h2 { font-size: 18px; color: #fff; }
         .player-header img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #5288c1; object-fit: cover; }
         
-        /* Gizli Rol Pəncərəsi (Milli Ölçülər: 25mm x 13mm) */
+        /* Gizli Rol Pəncərəsi (25mm x 13mm) */
         .sidebar-trigger { position: absolute; left: 0; top: 35%; width: 15px; height: 60px; background: #24303f; border-radius: 0 8px 8px 0; border: 1px solid #313e4f; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #888; font-size: 12px; z-index: 99; touch-action: none; }
         .sidebar-panel { position: absolute; left: -100px; top: 35%; width: 13mm; height: 25mm; background: #17212b; border: 1px solid #ff3333; box-shadow: 5px 0 15px rgba(0,0,0,0.5); z-index: 98; border-radius: 0 6px 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: left 0.2s ease; overflow: hidden; }
         .sidebar-panel.open { left: 0; }
@@ -79,15 +77,12 @@
         .horizontal-list { height: 75px; background: #17212b; display: flex; align-items: center; gap: 15px; padding: 0 15px; overflow-x: auto; border-bottom: 1px solid #101921; scrollbar-width: none; }
         .horizontal-list::-webkit-scrollbar { display: none; }
         .hz-player-card { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 50px; position: relative; }
-        .hz-player-card img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s; }
-        .hz-player-card.selected img { border-color: #ff3333; }
-        .hz-player-card span { font-size: 11px; color: #7f91a4; margin-top: 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 55px; }
+        .hz-player-card img, .hz-all-card .all-icon { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s; }
+        .hz-all-card .all-icon { background: #5288c1; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; }
+        .hz-player-card.selected img, .hz-all-card.selected .all-icon { border-color: #ff3333; }
+        .hz-player-card span, .hz-all-card span { font-size: 11px; color: #7f91a4; margin-top: 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 55px; }
 
-        /* Ümumi İkon / Hamı Düyməsi */
-        .hz-player-card.all-card img { border: 2px solid #5288c1; background: #24303f; padding: 8px; }
-        .hz-player-card.all-card.selected img { border-color: #27ae60 !important; }
-
-        /* Çat Mesaj Sahəsi (Mobil Tam Optimizasiya) */
+        /* Çat Mesaj Sahəsi */
         .chat-area { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; }
         .msg { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; word-break: break-word; }
         .msg.incoming { background: #182533; align-self: flex-start; color: #fff; border-bottom-left-radius: 2px; }
@@ -126,13 +121,11 @@
             .admin-left, .admin-right { width: 100%; height: 50%; }
             .countdown-number { font-size: 100px; }
             .start-announcement { font-size: 32px; }
-            .chat-area { padding-bottom: 80px; } /* Mobil klaviatura və ekran kənarı üçün tam qorunma */
         }
     </style>
 </head>
 <body>
 
-    <!-- Səhifə A: Giriş Sahəsi və Qeydiyyat Keçidi -->
     <div id="page-a" class="page active">
         <button id="nav-to-d-btn" class="login-btn-top">Vəzifə təyin et</button>
         <div class="login-box">
@@ -140,42 +133,40 @@
             <input type="text" id="login-username" placeholder="Adınız">
             <input type="password" id="login-password" placeholder="Şifrəniz">
             <button id="login-submit-btn">Daxil ol</button>
-            <br>
-            <button id="open-register-overlay-btn" class="register-link-btn">Qeydiyyatdan keç</button>
+            <span class="register-link" id="open-register-overlay">Qeydiyyatdan keç</span>
         </div>
     </div>
 
-    <!-- Üzən Qeydiyyat Pəncərəsi (Modal overlay) -->
-    <div class="register-overlay" id="register-overlay-panel">
+    <!-- Üzən Qeydiyyat Pəncərəsi -->
+    <div class="register-overlay" id="register-panel">
         <div class="register-box">
-            <h3>YENİ OYUNÇU QEYDİYYATI</h3>
-            <input type="text" id="reg-username" placeholder="Oyunçu Adı">
-            <input type="password" id="reg-password" placeholder="Şifrə">
+            <span class="close-reg-btn" id="close-register-overlay">&times;</span>
+            <h3>Yeni Oyunçu Qeydiyyatı</h3>
+            <input type="text" id="reg-name" placeholder="İstifadəçi Adınız">
+            <input type="password" id="reg-pass" placeholder="Şifrəniz">
             
-            <div class="upload-options-row">
-                <button id="reg-cam-toggle-btn">📷 Kamera</button>
-                <label for="reg-file-input" class="reg-file-label" style="margin-bottom:0; display:flex; align-items:center; justify-content:center;">📁 Qalereya</label>
-                <input type="file" id="reg-file-input" accept="image/*" style="display:none;">
-            </div>
-
+            <label class="file-label" for="reg-file">📁 Qalereyadan Şəkil Seç</label>
+            <input type="file" id="reg-file" accept="image/*" style="display:none;">
+            
+            <button id="reg-camera-btn" style="background:#34495e; margin-bottom:5px;">📷 Ön Kamera ilə Selfi Çək</button>
+            
             <div class="camera-container" id="reg-cam-block">
-                <video id="reg-video" autoplay playsinline></video>
-                <canvas id="reg-canvas" style="display:none;"></canvas>
+                <div class="video-wrapper">
+                    <video id="video-reg" autoplay playsinline></video>
+                    <div class="biometric-guide"></div>
+                </div>
+                <div class="biometric-status status-scanning" id="reg-biometric-status">Üz skan edilir...</div>
                 <div class="camera-btns">
-                    <button id="reg-snap-btn" style="background:#e67e22; color:white; border:none;">Çək</button>
-                    <button id="reg-retake-btn" style="background:#7f8c8d; color:white; border:none; display:none;">Yenidən</button>
+                    <button id="reg-snap-btn" style="background:#e67e22; color:white; border:none; border-radius:3px;" disabled>Skan Gözlənilir</button>
+                    <button id="reg-retake-btn" style="background:#7f8c8d; color:white; border:none; border-radius:3px; display:none;">Yenidən Çək</button>
                 </div>
             </div>
-            <img id="reg-captured-preview" class="reg-preview" src="">
             
-            <div class="btn-row" style="margin-top:10px;">
-                <button id="submit-register-btn" style="background:#27ae60; color:white;">Təsdiq Et</button>
-                <button id="close-register-overlay-btn" style="background:#c0392b; color:white;">Ləğv Et</button>
-            </div>
+            <img id="reg-preview" class="img-preview" src="">
+            <button id="submit-register-btn" style="background:#27ae60; margin-top:15px;">Qeydiyyatı Tamamla</button>
         </div>
     </div>
 
-    <!-- Səhifə B: Admin Paneli -->
     <div id="page-b" class="page">
         <div class="admin-left">
             <div class="admin-section">
@@ -184,17 +175,18 @@
                     <input type="text" id="p-name" placeholder="Oyunçu Adı">
                     <input type="password" id="p-pass" placeholder="Şifrə">
                     
-                    <div class="upload-options-row">
-                        <button id="camera-toggle-btn">📷 Şəkil Çək</button>
-                        <label for="p-file-input">📁 Qalereyadan Seç</label>
-                        <input type="file" id="p-file-input" accept="image/*" style="display:none;">
-                    </div>
+                    <label class="file-label" for="admin-file">📁 Qalereyadan Şəkil Seç</label>
+                    <input type="file" id="admin-file" accept="image/*" style="display:none;">
 
+                    <button id="camera-toggle-btn" style="background:#34495e; margin-bottom:5px;">📷 Kamera ilə Şəkil Çək</button>
                     <div class="camera-container" id="cam-block">
-                        <video id="video" autoplay playsinline></video>
-                        <canvas id="canvas" style="display:none;"></canvas>
+                        <div class="video-wrapper">
+                            <video id="video" autoplay playsinline></video>
+                            <div class="biometric-guide"></div>
+                        </div>
+                        <div class="biometric-status status-scanning" id="admin-biometric-status">Üz skan edilir...</div>
                         <div class="camera-btns">
-                            <button id="snap-btn" style="background:#e67e22; color:white; border:none; border-radius:3px;">Çək</button>
+                            <button id="snap-btn" style="background:#e67e22; color:white; border:none; border-radius:3px;" disabled>Skan Gözlənilir</button>
                             <button id="retake-btn" style="background:#7f8c8d; color:white; border:none; border-radius:3px; display:none;">Yenidən</button>
                         </div>
                     </div>
@@ -224,7 +216,6 @@
         </div>
     </div>
 
-    <!-- Səhifə C: Oyunçu Kabineti -->
     <div id="page-c" class="page">
         <div class="player-header">
             <h2 id="cabinet-title">Oyunçu Kabineti</h2>
@@ -236,10 +227,13 @@
             <div class="role-text-vertical" id="cabinet-role-box">B<br>O<br>Ş<br>D<br>U<br>R</div>
         </div>
 
-        <!-- Horizontal Oyunçu Karuseli (Ümumi ikon dəstəyi bərpa olundu) -->
-        <div class="horizontal-list" id="hz-chat-list"></div>
+        <div class="horizontal-list" id="hz-chat-list">
+            <!-- Dynamic elements load here -->
+        </div>
 
-        <div class="chat-area" id="chat-messages-container"></div>
+        <div class="chat-area" id="chat-messages-container">
+            <!-- Messages load here -->
+        </div>
 
         <div class="chat-input-bar">
             <input type="text" id="chat-input-field" placeholder="Mesajınızı yazın...">
@@ -247,23 +241,20 @@
         </div>
     </div>
 
-    <!-- Səhifə D: Vəzifə Təyin Etmə -->
     <div id="page-d" class="page">
         <button id="back-to-a-btn" class="btn-back-a">Geri</button>
         <button id="new-game-btn" class="btn-new-game">Yeni Oyun</button>
         <button id="main-distribute-btn" class="main-trigger-btn">VƏZİFƏLƏRİ TƏYİN ET</button>
     </div>
 
-    <!-- Transparent Böyük Geri Sayım Layer-i -->
     <div class="countdown-overlay" id="global-countdown-overlay">
         <div class="countdown-number" id="global-countdown-num">5</div>
     </div>
     <div class="start-announcement" id="global-start-banner">OYUN BAŞLADI, UĞURLAR</div>
 
-    <!-- Yeni Oyun Təsdiq Modalı -->
     <div class="modal" id="confirm-modal">
         <div class="modal-box">
-            <p>Əminsinizmi? Bütün rollar və çat sıfırlanacak.</p>
+            <p>Əminsinizmi? Bütün rollar və çat sıfırlanacaq.</p>
             <div class="modal-btns">
                 <button class="btn-yes" id="modal-yes">Bəli</button>
                 <button class="btn-no" id="modal-no">Xeyr</button>
@@ -272,20 +263,20 @@
     </div>
 
     <script>
-        // --- 1. FIREBASE REALTIME DATABASE CONFIGURATION ---
+        // --- 1. FIREBASE CONFIG ---
         const firebaseConfig = {
             databaseURL: "https://mafia-game-b6bf7-default-rtdb.europe-west1.firebasedatabase.app/"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- 2. GLOBAL DEYİŞƏNLƏR VƏ NAVİQASİYA ---
+        // --- 2. GLOBAL VARIABLES ---
         let currentUsername = "";
-        let selectedTargets = []; // "all" və ya xüsusi oyunçuların adları
-        let localPhotoBase64 = ""; // Admin əlavə etmə şəkli
-        let regPhotoBase64 = ""; // Qeydiyyat şəkli
+        let selectedTargets = []; // Array of private targets, empty means "all"
+        let isAllSelected = true;  // Default state is All
+        let localPhotoBase64 = ""; 
         let streamRef = null;
-        let regStreamRef = null;
+        let biometricTimeout = null;
 
         const pages = {
             A: document.getElementById('page-a'),
@@ -297,23 +288,20 @@
         function showPage(pageKey) {
             Object.values(pages).forEach(p => p.classList.remove('active'));
             pages[pageKey].classList.add('active');
-            if (pageKey !== 'B') stopAdminCamera();
-            if (pageKey !== 'A') stopRegCamera();
+            if (pageKey !== 'B') stopCamera();
+            document.getElementById('register-panel').style.display = 'none';
         }
 
-        // --- 3. SƏHİFƏ A & ÜZƏN QEYDİYYAT PƏNCƏRƏSİ ---
-        const regOverlay = document.getElementById('register-overlay-panel');
+        // --- 3. NAVIGATION & REGISTRATION INTERFACES ---
         document.getElementById('nav-to-d-btn').addEventListener('click', () => showPage('D'));
         document.getElementById('back-to-a-btn').addEventListener('click', () => showPage('A'));
-        document.getElementById('open-register-overlay-btn').addEventListener('click', () => {
-            regOverlay.style.display = 'flex';
-        });
-        document.getElementById('close-register-overlay-btn').addEventListener('click', () => {
-            regOverlay.style.display = 'none';
-            stopRegCamera();
-        });
+        document.getElementById('logout-b-btn').addEventListener('click', () => { currentUsername = ""; showPage('A'); });
+        
+        const regPanel = document.getElementById('register-panel');
+        document.getElementById('open-register-overlay').addEventListener('click', () => { regPanel.style.display = 'flex'; });
+        document.getElementById('close-register-overlay').addEventListener('click', () => { regPanel.style.display = 'none'; stopCamera(); });
 
-        // Giriş Məntiqi (Admin təhlükəsizlik koordinatı: Admin / 9060)
+        // Login core
         document.getElementById('login-submit-btn').addEventListener('click', () => {
             const u = document.getElementById('login-username').value.trim();
             const p = document.getElementById('login-password').value.trim();
@@ -331,215 +319,183 @@
                     currentUsername = u;
                     document.getElementById('cabinet-title').innerText = u;
                     document.getElementById('cabinet-avatar').src = userData.photo || "https://via.placeholder.com/150";
-                    selectedTargets = ["all"]; // İlkin olaraq ümumi çat seçilir
                     showPage('C');
                     listenToCabinetRole();
                 } else {
-                    alert("Giriş məlumatları yanlışdır və ya istifadəçi aktiv deyil!");
+                    alert("Ad və ya şifrə yanlışdır!");
                 }
             });
         });
 
-        // Üzən Qeydiyyatda Kamera Mexanizmi
-        const regVideo = document.getElementById('reg-video');
-        const regCanvas = document.getElementById('reg-canvas');
-        const regCamBlock = document.getElementById('reg-cam-block');
-        const regSnapBtn = document.getElementById('reg-snap-btn');
-        const regRetakeBtn = document.getElementById('reg-retake-btn');
-        const regPreviewImg = document.getElementById('reg-captured-preview');
-
-        document.getElementById('reg-cam-toggle-btn').addEventListener('click', async () => {
-            if (regCamBlock.style.display === 'flex') {
-                stopRegCamera();
-            } else {
-                regCamBlock.style.display = 'flex';
-                try {
-                    regStreamRef = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-                    regVideo.srcObject = regStreamRef;
-                } catch (err) {
-                    alert("Kamera xətası: " + err.message);
-                }
-            }
-        });
-
-        regSnapBtn.addEventListener('click', () => {
-            if (!regStreamRef) return;
-            regCanvas.width = regVideo.videoWidth;
-            regCanvas.height = regVideo.videoHeight;
-            const ctx = regCanvas.getContext('2d');
-            ctx.translate(regCanvas.width, 0);
-            ctx.scale(-1, 1);
-            ctx.drawImage(regVideo, 0, 0, regCanvas.width, regCanvas.height);
-            regPhotoBase64 = regCanvas.toDataURL('image/jpeg', 0.7);
-            regPreviewImg.src = regPhotoBase64;
-            regPreviewImg.style.display = 'block';
-            regVideo.style.display = 'none';
-            regSnapBtn.style.display = 'none';
-            regRetakeBtn.style.display = 'block';
-        });
-
-        regRetakeBtn.addEventListener('click', () => {
-            regPhotoBase64 = "";
-            regPreviewImg.style.display = 'none';
-            regVideo.style.display = 'block';
-            regSnapBtn.style.display = 'block';
-            regRetakeBtn.style.display = 'none';
-        });
-
-        // Üzən Qeydiyyatda Qalereyadan Şəkil Yükləmə (Problem 2 & 3 inteqrasiyası)
-        document.getElementById('reg-file-input').addEventListener('change', function(e) {
-            const file = e.target.files[0];
+        // File compression utility
+        function handleFileSelection(file, imgPreviewElement) {
             if (!file) return;
-            stopRegCamera();
             const reader = new FileReader();
-            reader.onload = function(event) {
-                regPhotoBase64 = event.target.result;
-                regPreviewImg.src = regPhotoBase64;
-                regPreviewImg.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
-        });
-
-        function stopRegCamera() {
-            if (regStreamRef) {
-                regStreamRef.getTracks().forEach(t => t.stop());
-                regStreamRef = null;
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvasResize = document.createElement('canvas');
+                    const max_size = 120;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height) {
+                        if (width > max_size) { height *= max_size / width; width = max_size; }
+                    } else {
+                        if (height > max_size) { width *= max_size / height; height = max_size; }
+                    }
+                    canvasResize.width = width;
+                    canvasResize.height = height;
+                    const ctx = canvasResize.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    localPhotoBase64 = canvasResize.toDataURL('image/jpeg', 0.6);
+                    imgPreviewElement.src = localPhotoBase64;
+                    imgPreviewElement.style.display = 'block';
+                }
+                img.src = e.target.result;
             }
-            regVideo.srcObject = null;
-            regCamBlock.style.display = 'none';
-            regVideo.style.display = 'block';
-            regSnapBtn.style.display = 'block';
-            regRetakeBtn.style.display = 'none';
-            regPreviewImg.style.display = 'none';
-            regPhotoBase64 = "";
+            reader.readAsDataURL(file);
         }
 
-        // Qeydiyyatı Tamamlama və Firebase Bazasına Ötürmə
-        document.getElementById('submit-register-btn').addEventListener('click', () => {
-            const name = document.getElementById('reg-username').value.trim();
-            const pass = document.getElementById('reg-password').value.trim();
-            if (!name || !pass) { alert("Xanalari tam doldurun!"); return; }
+        document.getElementById('reg-file').addEventListener('change', (e) => handleFileSelection(e.target.files[0], document.getElementById('reg-preview')));
+        document.getElementById('admin-file').addEventListener('change', (e) => handleFileSelection(e.target.files[0], document.getElementById('captured-preview')));
 
-            db.ref('players/' + name).once('value', snap => {
-                if (snap.exists()) {
-                    alert("Bu adda oyunçu artıq sistemdə mövcuddur!");
-                    return;
-                }
-                const finalPhoto = regPhotoBase64 || "https://via.placeholder.com/150";
-                db.ref('players/' + name).set({
-                    name: name,
-                    password: pass,
-                    photo: finalPhoto,
-                    status: "active",
-                    role: "Boşdur"
-                }).then(() => {
-                    alert("Qeydiyyat uğurla tamamlandı! İndi daxil ola bilərsiniz.");
-                    document.getElementById('reg-username').value = "";
-                    document.getElementById('reg-password').value = "";
-                    regOverlay.style.display = 'none';
-                    stopRegCamera();
-                });
-            });
-        });
+        // Biometric scanning imitation trigger
+        function runBiometricScan(snapBtnEl, statusEl) {
+            snapBtnEl.disabled = true;
+            snapBtnEl.innerText = "Skan edilir...";
+            statusEl.innerText = "Sima analiz olunur, gözləyin...";
+            statusEl.className = "biometric-status status-scanning";
+            
+            if (biometricTimeout) clearTimeout(biometricTimeout);
+            biometricTimeout = setTimeout(() => {
+                snapBtnEl.disabled = false;
+                snapBtnEl.innerText = "Şəkli Çək";
+                statusEl.innerText = "✓ İnsan üzü aşkarlandı. Hazırdır.";
+                statusEl.className = "biometric-status status-ready";
+            }, 1800);
+        }
 
-
-        // --- 4. SƏHİFƏ B: ADMIN PANELI (YADDAŞDAN SEÇMƏ VƏ KAMERA) ---
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const camBlock = document.getElementById('cam-block');
-        const snapBtn = document.getElementById('snap-btn');
-        const retakeBtn = document.getElementById('retake-btn');
-        const previewImg = document.getElementById('captured-preview');
-
-        document.getElementById('camera-toggle-btn').addEventListener('click', async () => {
-            if (camBlock.style.display === 'flex') {
-                stopAdminCamera();
-            } else {
-                camBlock.style.display = 'flex';
-                try {
-                    streamRef = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-                    video.srcObject = streamRef;
-                } catch (err) {
-                    alert("Kamera xətası: " + err.message);
-                }
+        // Camera Activation Mechanics
+        async function startCameraSystem(videoEl, blockEl, snapBtnEl, statusEl) {
+            blockEl.style.display = 'flex';
+            try {
+                // Request camera permission explicitly through standard api
+                streamRef = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+                videoEl.srcObject = streamRef;
+                runBiometricScan(snapBtnEl, statusEl);
+            } catch (err) {
+                alert("Kameraya icazə verilmədi və ya ön kamera tapılmadı! Zəhmət olmasa tətbiq tənzimləmələrindən icazəni aktiv edin.");
+                blockEl.style.display = 'none';
             }
+        }
+
+        document.getElementById('reg-camera-btn').addEventListener('click', () => {
+            startCameraSystem(document.getElementById('video-reg'), document.getElementById('reg-cam-block'), document.getElementById('reg-snap-btn'), document.getElementById('reg-biometric-status'));
         });
 
-        snapBtn.addEventListener('click', () => {
-            if (!streamRef) return;
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.translate(canvas.width, 0);
+        document.getElementById('camera-toggle-btn').addEventListener('click', () => {
+            startCameraSystem(document.getElementById('video'), document.getElementById('cam-block'), document.getElementById('snap-btn'), document.getElementById('admin-biometric-status'));
+        });
+
+        // Snap photo mechanics
+        function capturePhoto(videoEl, snapBtnEl, retakeBtnEl, previewEl) {
+            const canvasCapture = document.createElement('canvas');
+            canvasCapture.width = 120;
+            canvasCapture.height = 120;
+            const ctx = canvasCapture.getContext('2d');
+            ctx.translate(canvasCapture.width, 0);
             ctx.scale(-1, 1);
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            localPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
-            previewImg.src = localPhotoBase64;
-            previewImg.style.display = 'block';
-            video.style.display = 'none';
-            snapBtn.style.display = 'none';
-            retakeBtn.style.display = 'block';
-        });
+            ctx.drawImage(videoEl, 0, 0, canvasCapture.width, canvasCapture.height);
+            
+            localPhotoBase64 = canvasCapture.toDataURL('image/jpeg', 0.6);
+            previewEl.src = localPhotoBase64;
+            previewEl.style.display = 'block';
+            
+            videoEl.style.display = 'none';
+            snapBtnEl.style.display = 'none';
+            retakeBtnEl.style.display = 'block';
+        }
 
-        retakeBtn.addEventListener('click', () => {
+        document.getElementById('reg-snap-btn').addEventListener('click', () => capturePhoto(document.getElementById('video-reg'), document.getElementById('reg-snap-btn'), document.getElementById('reg-retake-btn'), document.getElementById('reg-preview')));
+        document.getElementById('snap-btn').addEventListener('click', () => capturePhoto(document.getElementById('video'), document.getElementById('snap-btn'), document.getElementById('retake-btn'), document.getElementById('captured-preview')));
+
+        function resetCameraElements(videoEl, snapBtnEl, retakeBtnEl, previewEl) {
+            videoEl.style.display = 'block';
+            snapBtnEl.style.display = 'block';
+            retakeBtnEl.style.display = 'none';
+            previewEl.style.display = 'none';
             localPhotoBase64 = "";
-            previewImg.style.display = 'none';
-            video.style.display = 'block';
-            snapBtn.style.display = 'block';
-            retakeBtn.style.display = 'none';
+        }
+
+        document.getElementById('reg-retake-btn').addEventListener('click', () => {
+            resetCameraElements(document.getElementById('video-reg'), document.getElementById('reg-snap-btn'), document.getElementById('reg-retake-btn'), document.getElementById('reg-preview'));
+            runBiometricScan(document.getElementById('reg-snap-btn'), document.getElementById('reg-biometric-status'));
         });
 
-        // Admin panelində telefon yaddaşından / fayldan şəkil yükləmə mexanizmi (Problem 2)
-        document.getElementById('p-file-input').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            stopAdminCamera(); // Kamera açıqdırsa söndürürük
-            const reader = new FileReader();
-            reader.onload = function(event) {
-                localPhotoBase64 = event.target.result;
-                previewImg.src = localPhotoBase64;
-                previewImg.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
+        document.getElementById('retake-btn').addEventListener('click', () => {
+            resetCameraElements(document.getElementById('video'), document.getElementById('snap-btn'), document.getElementById('retake-btn'), document.getElementById('captured-preview'));
+            runBiometricScan(document.getElementById('snap-btn'), document.getElementById('admin-biometric-status'));
         });
 
-        function stopAdminCamera() {
+        function stopCamera() {
             if (streamRef) {
-                streamRef.getTracks().forEach(t => t.stop());
+                streamRef.getTracks().forEach(track => track.stop());
                 streamRef = null;
             }
-            video.srcObject = null;
-            camBlock.style.display = 'none';
-            video.style.display = 'block';
-            snapBtn.style.display = 'block';
-            retakeBtn.style.display = 'none';
-            previewImg.style.display = 'none';
-            localPhotoBase64 = "";
+            if (biometricTimeout) clearTimeout(biometricTimeout);
+            document.getElementById('video').srcObject = null;
+            document.getElementById('video-reg').srcObject = null;
+            document.getElementById('cam-block').style.display = 'none';
+            document.getElementById('reg-cam-block').style.display = 'none';
+            
+            resetCameraElements(document.getElementById('video-reg'), document.getElementById('reg-snap-btn'), document.getElementById('reg-retake-btn'), document.getElementById('reg-preview'));
+            resetCameraElements(document.getElementById('video'), document.getElementById('snap-btn'), document.getElementById('retake-btn'), document.getElementById('captured-preview'));
         }
 
-        document.getElementById('add-player-btn').addEventListener('click', () => {
-            const name = document.getElementById('p-name').value.trim();
-            const pass = document.getElementById('p-pass').value.trim();
-            if (!name || !pass) { alert("Xanaları doldurun!"); return; }
-
-            const finalPhoto = localPhotoBase64 || "https://via.placeholder.com/150";
+        // Handle Registration Submit
+        document.getElementById('submit-register-btn').addEventListener('click', () => {
+            const name = document.getElementById('reg-name').value.trim();
+            const pass = document.getElementById('reg-pass').value.trim();
+            if (!name || !pass || !localPhotoBase64) {
+                alert("Qeydiyyat xətası: Ad, şifrə və profil şəkli (selfi və ya fayl) yüklənməsi mütləqdir!");
+                return;
+            }
 
             db.ref('players/' + name).set({
                 name: name,
                 password: pass,
-                photo: finalPhoto,
+                photo: localPhotoBase64,
+                status: "active",
+                role: "Boşdur"
+            }).then(() => {
+                alert("Qeydiyyat uğurla tamamlandı! İndi daxil ola bilərsiniz.");
+                document.getElementById('reg-name').value = "";
+                document.getElementById('reg-pass').value = "";
+                regPanel.style.display = 'none';
+                stopCamera();
+            });
+        });
+
+        // Handle Admin Add Submit
+        document.getElementById('add-player-btn').addEventListener('click', () => {
+            const name = document.getElementById('p-name').value.trim();
+            const pass = document.getElementById('p-pass').value.trim();
+            if (!name || !pass || !localPhotoBase64) { alert("Ad, şifrə və şəkil mütləqdir!"); return; }
+
+            db.ref('players/' + name).set({
+                name: name,
+                password: pass,
+                photo: localPhotoBase64,
                 status: "active",
                 role: "Boşdur"
             }).then(() => {
                 document.getElementById('p-name').value = "";
                 document.getElementById('p-pass').value = "";
-                stopAdminCamera();
+                stopCamera();
             });
         });
 
-        document.getElementById('logout-b-btn').addEventListener('click', () => { currentUsername = ""; showPage('A'); });
-
-        // Vəzifə əlavə etmə
+        // --- 4. ADMIN SECTIONS & DATA SYNC ---
         document.getElementById('add-custom-role-btn').addEventListener('click', () => {
             const rName = document.getElementById('new-role-name').value.trim();
             if (!rName) return;
@@ -548,30 +504,42 @@
             });
         });
 
-        // Canlı verilənlər bazası sinxronizasiyası (Admin siyahıları)
         db.ref('players').on('value', snap => {
             const players = snap.val() || {};
             const activeDiv = document.getElementById('active-players-list');
             const archiveDiv = document.getElementById('archive-players-list');
             activeDiv.innerHTML = "";
             archiveDiv.innerHTML = "";
+
             let activeCount = 0;
 
             Object.keys(players).forEach(key => {
                 const p = players[key];
-                if (p.status === "active") {
+                
+                // PROBLEM 2 RESOLUTION: Handle broken/incomplete database elements safely
+                const pName = p.name || key || "Naməlum Oyunçu";
+                const pPhoto = p.photo || "https://via.placeholder.com/150";
+                const pRole = p.role || "Boşdur";
+                const pStatus = p.status || "active";
+
+                if (pStatus === "active") {
                     activeCount++;
                     const item = document.createElement('div');
                     item.className = 'player-item';
                     item.innerHTML = `
                         <div class="player-info">
-                            <img src="${p.photo}" alt="p">
-                            <div><strong>${p.name}</strong> <br><small style="color:#aaa;">Rol: ${p.role || 'Boşdur'}</small></div>
+                            <img src="${pPhoto}" alt="p">
+                            <div><strong>${pName}</strong> <br><small style="color:#aaa;">Rol: ${pRole}</small></div>
                         </div>
-                        <button class="btn-mini">Sil</button>
+                        <button class="btn-mini" data-id="${key}">Sil</button>
                     `;
                     item.querySelector('.btn-mini').addEventListener('click', () => {
-                        db.ref('players/' + p.name).update({ status: "archived" });
+                        // Completely delete if broken, otherwise archive
+                        if (!p.name || !p.photo) {
+                            db.ref('players/' + key).remove();
+                        } else {
+                            db.ref('players/' + key).update({ status: "archived" });
+                        }
                     });
                     activeDiv.appendChild(item);
                 } else {
@@ -579,18 +547,21 @@
                     item.className = 'archive-item';
                     item.innerHTML = `
                         <div class="player-info">
-                            <img src="${p.photo}" alt="p">
-                            <span>${p.name}</span>
+                            <img src="${pPhoto}" alt="p">
+                            <span>${pName}</span>
                         </div>
-                        <button class="btn-mini restore">Bərpa</button>
+                        <button class="btn-mini restore" data-id="${key}">Bərpa</button>
                     `;
                     item.querySelector('.btn-mini.restore').addEventListener('click', () => {
-                        db.ref('players/' + p.name).update({ status: "active" });
+                        db.ref('players/' + key).update({ status: "active" });
                     });
                     archiveDiv.appendChild(item);
                 }
             });
-            updateMainTriggerButtonState(activeCount);
+
+            db.ref('game_status/distributed').once('value', dSnap => {
+                updateMainTriggerButtonState(activeCount, !!dSnap.val());
+            });
         });
 
         db.ref('roles_config').on('value', snap => {
@@ -612,7 +583,7 @@
                         <button class="btn-minus">-</button>
                         <span style="min-width:20px; text-align:center; font-weight:bold;">${count}</span>
                         <button class="btn-plus">+</button>
-                        <button class="btn-mini" style="margin-left:10px; background:#7f8c8d;" data-del="${rName}">X</button>
+                        <button class="btn-mini" style="margin-left:10px; background:#7f8c8d;" data-del="1">X</button>
                     </div>
                 `;
                 item.querySelector('.btn-minus').addEventListener('click', () => {
@@ -629,24 +600,24 @@
         });
 
 
-        // --- 5. SƏHİFƏ D: VƏZİFƏ PAYLAMA VƏ KİLİD MEXANİZMİ ---
-        let isGameDistributed = false;
+        // --- 5. PAGE D: DISTRIBUTE MECHANICS & GAME SYNC ---
+        let globalDistributedState = false;
         db.ref('game_status/distributed').on('value', snap => {
-            isGameDistributed = !!snap.val();
+            globalDistributedState = !!snap.val();
             db.ref('players').once('value', pSnap => {
                 let actCount = 0;
                 const pData = pSnap.val() || {};
-                Object.values(pData).forEach(x => { if(x.status === 'active') actCount++; });
-                updateMainTriggerButtonState(actCount);
+                Object.values(pData).forEach(x => { if((x.status || 'active') === 'active') actCount++; });
+                updateMainTriggerButtonState(actCount, globalDistributedState);
             });
         });
 
-        function updateMainTriggerButtonState(activeCount) {
+        function updateMainTriggerButtonState(activeCount, isDistributed) {
             const btn = document.getElementById('main-distribute-btn');
             if (activeCount < 5) {
                 btn.disabled = true;
                 btn.innerText = `Oyunçu azdır (${activeCount}/5)`;
-            } else if (isGameDistributed) {
+            } else if (isDistributed) {
                 btn.disabled = true;
                 btn.innerText = "Vəzifələr Paylanıb (Kilidli)";
             } else {
@@ -673,12 +644,13 @@
         });
 
         document.getElementById('main-distribute-btn').addEventListener('click', () => {
-            if (isGameDistributed) return;
+            if (globalDistributedState) return;
             db.ref('game_status/countdown_trigger').set(firebase.database.ServerValue.TIMESTAMP);
         });
 
         db.ref('game_status/countdown_trigger').on('value', snap => {
             if (!snap.val()) return;
+            
             const overlay = document.getElementById('global-countdown-overlay');
             const numEl = document.getElementById('global-countdown-num');
             const banner = document.getElementById('global-start-banner');
@@ -714,9 +686,8 @@
 
                 db.ref('players').once('value', pSnap => {
                     const players = pSnap.val() || {};
-                    let activeKeys = Object.keys(players).filter(k => players[k].status === 'active');
+                    let activeKeys = Object.keys(players).filter(k => (players[k].status || 'active') === 'active');
 
-                    // Fisher-Yates alqoritmi
                     for (let i = rolePool.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [rolePool[i], rolePool[j]] = [rolePool[j], rolePool[i]];
@@ -724,8 +695,10 @@
 
                     const updates = {};
                     activeKeys.forEach((pKey, index) => {
-                        updates['players/' + pKey + '/role'] = rolePool[index] || "Sivil";
+                        const assignedRole = rolePool[index] || "Sivil";
+                        updates['players/' + pKey + '/role'] = assignedRole;
                     });
+
                     updates['game_status/distributed'] = true;
                     updates['game_status/countdown_trigger'] = null;
                     db.ref().update(updates);
@@ -734,7 +707,7 @@
         }
 
 
-        // --- 6. SƏHİFƏ C: OYUNÇU KABİNETİ MEXANİZMLƏRİ ---
+        // --- 6. PAGE C: CABINET & MESSAGE LOGISTICS ---
         const sidebarTrigger = document.getElementById('sidebar-trigger');
         const sidebarPanel = document.getElementById('sidebar-panel');
         let isPanelOpen = false;
@@ -751,12 +724,14 @@
                 sidebarTrigger.style.left = "0";
             }
         }
+
         sidebarTrigger.addEventListener('click', togglePanel);
 
         let touchStartX = 0;
         sidebarTrigger.addEventListener('touchstart', (e) => { touchStartX = e.touches.clientX; }, { passive: true });
         sidebarTrigger.addEventListener('touchend', (e) => {
-            let diffX = e.changedTouches.clientX - touchStartX;
+            let touchEndX = e.changedTouches.clientX;
+            let diffX = touchEndX - touchStartX;
             if (!isPanelOpen && diffX > 30) togglePanel();
             else if (isPanelOpen && diffX < -30) togglePanel();
         }, { passive: true });
@@ -765,39 +740,43 @@
             if (!currentUsername || currentUsername === "Admin") return;
             db.ref('players/' + currentUsername + '/role').on('value', snap => {
                 const val = snap.val() || "Boşdur";
-                document.getElementById('cabinet-role-box').innerHTML = val.split('').join('<br>');
+                const verticalHTML = val.split('').join('<br>');
+                document.getElementById('cabinet-role-box').innerHTML = verticalHTML;
             });
         }
 
-        // Horizontal Oyunçu Siyahısı (PROBLEM 4 - ÜMUMİ DÜYMƏSİ BƏRPA OLUNDU VƏ FUNKSİONALDIR)
+        // Horizontal live syncing player list for messaging matrix
         db.ref('players').on('value', snap => {
             if (!currentUsername || currentUsername === "Admin") return;
             const players = snap.val() || {};
             const hzList = document.getElementById('hz-chat-list');
             hzList.innerHTML = "";
 
-            // Hamı/Ümumi düyməsi (Nişanlama mexanizmi bərpa edildi)
+            // PROBLEM 4 BƏRPA: "Hamı" global control icon
             const allCard = document.createElement('div');
-            allCard.className = 'hz-player-card all-card';
-            if (selectedTargets.includes("all")) { allCard.classList.add('selected'); }
+            allCard.className = `hz-player-card hz-all-card ${isAllSelected ? 'selected' : ''}`;
             allCard.innerHTML = `
-                <img src="https://cdn-icons-png.flaticon.com/512/32/32441.png" alt="all">
+                <div class="all-icon">ALL</div>
                 <span>Hamı</span>
             `;
             allCard.addEventListener('click', () => {
-                selectedTargets = ["all"]; // Digər fərdi seçimləri təmizləyir və hamını aktiv edir
-                db.ref('players').keepSynced(true); // Vizual yeniləmə tetikləyicisi
+                isAllSelected = true;
+                selectedTargets = [];
+                // Visual reset on other list entries
+                document.querySelectorAll('.hz-player-card').forEach(el => el.classList.remove('selected'));
+                allCard.classList.add('selected');
             });
             hzList.appendChild(allCard);
 
             Object.keys(players).forEach(k => {
                 const p = players[k];
-                if (p.status === "active") {
-                    if (p.name === currentUsername) return; // Öz kabinetində özü görünmür
+                // PROBLEM 3.b RESOLUTION & Live Appending Verification
+                if (p.status === "active" && p.name && p.photo) {
+                    if (p.name === currentUsername) return; 
 
                     const card = document.createElement('div');
                     card.className = 'hz-player-card';
-                    if (selectedTargets.includes(p.name) && !selectedTargets.includes("all")) {
+                    if (!isAllSelected && selectedTargets.includes(p.name)) {
                         card.classList.add('selected');
                     }
                     card.innerHTML = `
@@ -805,23 +784,26 @@
                         <span>${p.name}</span>
                     `;
                     card.addEventListener('click', () => {
-                        // Əgər əvvəl "all" seçilidisə, onu ləğv edib fərdi rejimə keçirik
-                        if (selectedTargets.includes("all")) { selectedTargets = []; }
-
+                        isAllSelected = false;
+                        allCard.classList.remove('selected');
+                        
                         if (selectedTargets.includes(p.name)) {
                             selectedTargets = selectedTargets.filter(t => t !== p.name);
-                            if (selectedTargets.length === 0) selectedTargets = ["all"]; // Heç kim qalmadıqda avtomatik Hamı rejimli olur
+                            card.classList.remove('selected');
+                            if (selectedTargets.length === 0) {
+                                isAllSelected = true;
+                                allCard.classList.add('selected');
+                            }
                         } else {
                             selectedTargets.push(p.name);
+                            card.classList.add('selected');
                         }
-                        db.ref('players').keepSynced(true);
                     });
                     hzList.appendChild(card);
                 }
             });
         });
 
-        // Çat Mesaj Mexanizmi
         document.getElementById('chat-send-btn').addEventListener('click', sendMessage);
         document.getElementById('chat-input-field').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
@@ -834,7 +816,7 @@
                 sender: currentUsername,
                 text: txt,
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
-                targets: selectedTargets.includes("all") ? "all" : selectedTargets
+                targets: isAllSelected ? "all" : selectedTargets
             };
 
             db.ref('chat').push(msgData).then(() => {
@@ -850,6 +832,7 @@
 
             Object.keys(messages).forEach(mKey => {
                 const m = messages[mKey];
+                
                 const isAll = m.targets === "all";
                 const isSender = m.sender === currentUsername;
                 const isTarget = Array.isArray(m.targets) && m.targets.includes(currentUsername);
@@ -862,6 +845,7 @@
                     if (Array.isArray(m.targets)) {
                         targetLabel = `<span class="msg-target">🔒 Özəl: ${m.targets.join(', ')}</span>`;
                     }
+
                     const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "";
 
                     div.innerHTML = `
@@ -875,6 +859,7 @@
             });
             chatBox.scrollTop = chatBox.scrollHeight;
         });
+
     </script>
 </body>
 </html>
