@@ -2,18 +2,26 @@
 <html lang="az">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mafia Premium Control</title>
-    <!-- Firebase SDK v9 (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #0a0a0a; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .page { display: none; width: 100vw; height: 100vh; position: relative; }
+        :root { --app-height: 100vh; }
+        body { 
+            background: #0a0a0a; 
+            color: #e0e0e0; 
+            height: var(--app-height);
+            min-height: -webkit-fill-available;
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            position: fixed;
+            width: 100vw;
+        }
+        .page { display: none; width: 100vw; height: 100%; position: relative; }
         .page.active { display: flex; flex-direction: column; }
-        
-        /* Səhifə A: Giriş */
         #page-a { background: radial-gradient(circle, #1a1a1a 0%, #050505 100%); justify-content: center; align-items: center; }
         .login-btn-top { position: absolute; top: 15px; left: 15px; background: #27ae60; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; }
         .login-box { background: rgba(20, 20, 20, 0.9); padding: 30px; border-radius: 8px; border: 1px solid #333; width: 90%; max-width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.7); text-align: center; position: relative; }
@@ -21,17 +29,13 @@
         .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; font-size: 16px; }
         .login-box button { width: 100%; padding: 12px; background: #ff3333; border: none; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 16px; }
         .register-link { color: #5288c1; margin-top: 15px; display: inline-block; cursor: pointer; text-decoration: underline; font-size: 14px; }
-        
-        /* Üzən Qeydiyyat Pəncərəsi Panel (Modal kimi) */
-        .register-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; overflow-y: auto; padding: 20px; }
-        .register-box { background: #141414; padding: 25px; border-radius: 8px; border: 1px solid #333; width: 100%; max-width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; max-height: 95vh; overflow-y: auto; }
+        .register-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: var(--app-height); background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; overflow-y: auto; padding: 20px; }
+        .register-box { background: #141414; padding: 25px; border-radius: 8px; border: 1px solid #333; width: 100%; max-width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; max-height: 90vh; overflow-y: auto; }
         .register-box h3 { color: #ff3333; margin-bottom: 15px; letter-spacing: 1px; }
         .register-box input { width: 100%; padding: 10px; margin-bottom: 12px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; }
         .file-input-label { display: block; padding: 10px; background: #34495e; color: white; border-radius: 4px; margin-bottom: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
         .file-input-label input { display: none; }
-        
-        /* Səhifə B: Admin Paneli */
-        #page-b { display: none; flex-direction: row; height: 100vh; }
+        #page-b { display: none; flex-direction: row; height: 100%; }
         #page-b.active { display: flex; }
         .admin-left, .admin-right { width: 50%; height: 100%; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
         .admin-left { border-right: 1px solid #333; background: #111; }
@@ -48,81 +52,55 @@
         .btn-mini.restore { background: #2980b9; }
         .role-controls { display: flex; align-items: center; gap: 5px; }
         .role-controls button { width: 25px; height: 25px; background: #444; border: none; color: white; font-weight: bold; border-radius: 3px; cursor: pointer; }
-        
-        /* Kamera Bölməsi və Sima Tipli Şəkərbura Çərçivəsi */
         .camera-container { display: none; flex-direction: column; align-items: center; gap: 10px; background: #222; padding: 10px; border-radius: 6px; margin-top: 5px; position: relative; }
         .video-wrapper { position: relative; width: 100%; max-width: 240px; aspect-ratio: 4/3; background: #000; border-radius: 4px; overflow: hidden; }
         #video, #video-reg { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-        
-        /* Sima Şəkərbura Formasında Uzunsov Çərçivə Overlay */
         .shekerbura-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 130px; height: 180px; border: 3px dashed #ff3333; border-radius: 100px / 130px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); box-sizing: border-box; transition: border-color 0.3s; }
         .shekerbura-overlay.detected { border-color: #27ae60; border-style: solid; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3); }
-        
         .face-status-text { font-size: 11px; color: #ff3333; font-weight: bold; margin-top: 2px; text-align: center; }
         .face-status-text.detected { color: #27ae60; }
-        
         .camera-btns { display: flex; gap: 10px; width: 100%; }
         .camera-btns button { flex: 1; padding: 8px; font-size: 12px; }
         .img-preview { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; display: none; margin: 5px auto; border: 1px solid #555; }
-
-        /* Səhifə C: Oyunçu Kabineti (Flex Box Tam Mobil Optimizasiya) */
-        #page-c { background: #0e1621; height: 100vh; display: none; position: relative; flex-direction: column; overflow: hidden; }
-        #page-c.active { display: flex; }
+        #page-c { background: #0e1621; height: 100%; overflow: hidden; display: none; position: relative; }
+        #page-c.active { display: flex; flex-direction: column; }
         .player-header { height: 60px; background: #17212b; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; border-bottom: 1px solid #101921; flex-shrink: 0; }
         .player-header h2 { font-size: 18px; color: #fff; }
         .player-header img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #5288c1; object-fit: cover; }
-        
-        /* Gizli Rol Pəncərəsi (Milli Ölçülər: 25mm x 13mm) */
         .sidebar-trigger { position: absolute; left: 0; top: 35%; width: 15px; height: 60px; background: #24303f; border-radius: 0 8px 8px 0; border: 1px solid #313e4f; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #888; font-size: 12px; z-index: 99; touch-action: none; }
         .sidebar-panel { position: absolute; left: -100px; top: 35%; width: 13mm; height: auto; min-height: 25mm; background: #17212b; border: 1px solid #ff3333; box-shadow: 5px 0 15px rgba(0,0,0,0.5); z-index: 98; border-radius: 0 6px 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5px 0; transition: left 0.2s ease; overflow: hidden; }
         .sidebar-panel.open { left: 0; }
         .role-text-vertical { display: flex; flex-direction: column; align-items: center; justify-content: center; text-transform: uppercase; color: #ff3333; font-weight: bold; font-size: 10px; line-height: 1.1; letter-spacing: 0px; text-align: center; margin-bottom: 10px; }
-        
-        /* Mafiya İttifaqı Siyahısı Bölməsi (Gizli Panel Daxilində) */
         .mafia-alliance-container { width: 100%; border-top: 1px dashed #ff3333; padding-top: 5px; display: none; flex-direction: column; align-items: center; gap: 5px; }
         .mafia-member-row { display: flex; align-items: center; gap: 4px; width: 90%; background: rgba(255,51,51,0.1); padding: 3px; border-radius: 4px; overflow: hidden; }
         .mafia-member-row img { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
         .mafia-member-row span { font-size: 8px; color: #ff8888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; font-weight: normal; }
-
-        /* Horizontal Oyunçu Siyahısı */
         .horizontal-list { height: 75px; background: #17212b; display: flex; align-items: center; gap: 15px; padding: 0 15px; overflow-x: auto; border-bottom: 1px solid #101921; flex-shrink: 0; scrollbar-width: none; }
         .horizontal-list::-webkit-scrollbar { display: none; }
         .hz-player-card { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 50px; position: relative; }
         .hz-player-card img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s; }
         .hz-player-card.selected img { border-color: #ff3333; }
         .hz-player-card span { font-size: 11px; color: #7f91a4; margin-top: 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 55px; }
-        
-        /* Mərkəzi Hamı İkonu */
         .all-icon-wrapper { width: 45px; height: 45px; border-radius: 50%; background: #24303f; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #fff; border: 2px solid transparent; }
         .hz-player-card.all-selected .all-icon-wrapper { border-color: #27ae60; background: #2b5278; }
-
-        /* Çat Mesaj Sahəsi (Problem 1 Tamamilə Həll Olundu - Flex Column Strukturuna Keçildi) */
-        .chat-area { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; }
+        .chat-area { flex: 1 1 auto; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; -webkit-overflow-scrolling: touch; }
         .msg { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; word-break: break-word; }
         .msg.incoming { background: #182533; align-self: flex-start; color: #fff; border-bottom-left-radius: 2px; }
         .msg.outgoing { background: #2b5278; align-self: flex-end; color: #fff; border-bottom-right-radius: 2px; }
         .msg .msg-meta { font-size: 10px; color: #7f91a4; display: block; margin-bottom: 2px; font-weight: bold; }
         .msg .msg-target { font-size: 9px; color: #ff8888; font-style: italic; display: block; margin-top: 3px; }
         .msg .msg-time { font-size: 9px; color: #a1b2c4; text-align: right; display: block; margin-top: 2px; }
-
-        /* Problem 1 Həlli: Sabit yaxud mütləq altlıq pozisiyası ləğv edildi, brauzerin dinamik zolağına təsir etməyən flex-shrink: 0 quruldu */
-        .chat-input-bar { height: 60px; background: #17212b; display: flex; align-items: center; padding: 0 10px; gap: 10px; border-top: 1px solid #101921; flex-shrink: 0; width: 100%; box-sizing: border-box; }
-        .chat-input-bar input { flex: 1; padding: 12px; background: #24303f; border: none; color: white; border-radius: 20px; font-size: 15px; outline: none; }
+        .chat-input-bar { height: 65px; background: #17212b; display: flex; align-items: center; padding: 0 15px; gap: 10px; border-top: 1px solid #101921; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom); }
+        .chat-input-bar input { flex: 1; padding: 12px 15px; background: #24303f; border: none; color: white; border-radius: 20px; font-size: 15px; outline: none; }
         .chat-input-bar button { width: 45px; height: 45px; background: #5288c1; border: none; color: white; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-
-        /* Səhifə D: Vəzifə Təyin Etmə */
         #page-d { background: #0c0c0c; justify-content: center; align-items: center; }
         .btn-back-a { position: absolute; top: 15px; left: 15px; background: #444; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         .btn-new-game { position: absolute; top: 15px; right: 15px; background: #7f8c8d; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         .main-trigger-btn { width: 180px; height: 180px; border-radius: 50%; background: #c0392b; border: 8px solid #962d22; color: white; font-weight: bold; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 0 30px rgba(192,57,43,0.5); transition: all 0.3s; user-select: none; }
         .main-trigger-btn:disabled { background: #3a3a3a !important; border-color: #2b2b2b !important; color: #777 !important; cursor: not-allowed; box-shadow: none !important; }
-        
-        /* Böyük Transparent Geri Sayım Overlay */
         .countdown-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.1); display: none; justify-content: center; align-items: center; z-index: 9999; pointer-events: none; }
         .countdown-number { font-size: 140px; font-weight: 900; color: #ff3333; text-shadow: 0 0 40px rgba(255,51,51,0.8); font-family: Impact, sans-serif; }
         .start-announcement { font-size: 45px; font-weight: bold; color: #27ae60; text-shadow: 0 0 30px rgba(39,174,96,0.8); text-align: center; display: none; font-family: 'Arial Black', sans-serif; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; width: 90%; pointer-events: none; }
-
-        /* Modal */
         .modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal-box { background: #222; padding: 25px; border-radius: 6px; width: 280px; text-align: center; border: 1px solid #444; }
         .modal-box p { margin-bottom: 20px; font-size: 16px; }
@@ -130,7 +108,6 @@
         .modal-btns button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
         .btn-yes { background: #c0392b; color: white; }
         .btn-no { background: #7f8c8d; color: white; }
-
         @media (max-width: 600px) {
             #page-b { flex-direction: column; }
             .admin-left, .admin-right { width: 100%; height: 50%; }
@@ -140,7 +117,6 @@
     </style>
 </head>
 <body>
-
     <div id="page-a" class="page active">
         <button id="nav-to-d-btn" class="login-btn-top">Vəzifə təyin et</button>
         <div class="login-box">
@@ -151,20 +127,16 @@
             <div id="open-register-overlay" class="register-link">Qeydiyyatdan keç</div>
         </div>
     </div>
-
     <div id="register-panel" class="register-overlay">
         <div class="register-box">
             <h3>YENİ QEYDİYYAT</h3>
             <input type="text" id="reg-name" placeholder="Oyunçu Adı">
             <input type="password" id="reg-pass" placeholder="Şifrə">
-            
             <label class="file-input-label">
                 📁 Qalereyadan Şəkil Seç
                 <input type="file" id="reg-file-input" accept="image/*">
             </label>
-
             <button id="reg-camera-toggle-btn" style="background:#e67e22; margin-bottom:5px; width:100%; padding:10px; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">📷 Kamera ilə Selfi Çək</button>
-            
             <div class="camera-container" id="reg-cam-block">
                 <div class="video-wrapper">
                     <video id="video-reg" autoplay playsinline></video>
@@ -178,12 +150,10 @@
                 </div>
             </div>
             <img id="reg-captured-preview" class="img-preview" src="">
-            
             <button id="submit-register-btn" style="width:100%; padding:12px; background:#27ae60; color:white; font-weight:bold; border:none; border-radius:4px; cursor:pointer; margin-top:15px;">Qeydiyyatı Tamamla</button>
             <button id="close-register-overlay" style="width:100%; padding:10px; background:#c0392b; color:white; font-weight:bold; border:none; border-radius:4px; cursor:pointer; margin-top:8px;">Ləğv Et</button>
         </div>
     </div>
-
     <div id="page-b" class="page">
         <div class="admin-left">
             <div class="admin-section">
@@ -191,12 +161,10 @@
                 <div class="admin-form">
                     <input type="text" id="p-name" placeholder="Oyunçu Adı">
                     <input type="password" id="p-pass" placeholder="Şifrə">
-                    
                     <label class="file-input-label">
                         📁 Qalereyadan Seç
                         <input type="file" id="admin-file-input" accept="image/*">
                     </label>
-
                     <button id="camera-toggle-btn" style="background:#34495e; margin-bottom:5px;">📷 Şəkil Çək</button>
                     <div class="camera-container" id="cam-block">
                         <div class="video-wrapper">
@@ -235,61 +203,56 @@
             </div>
         </div>
     </div>
-
     <div id="page-c" class="page">
         <div class="player-header">
             <h2 id="cabinet-title">Oyunçu Kabineti</h2>
             <img id="cabinet-avatar" src="https://via.placeholder.com/150" alt="Avatar">
         </div>
-        
         <div id="sidebar-trigger" class="sidebar-trigger">▶</div>
         <div id="sidebar-panel" class="sidebar-panel">
             <div class="role-text-vertical" id="cabinet-role-box">B<br>O<br>Ş<br>D<br>U<br>R</div>
             <div class="mafia-alliance-container" id="mafia-alliance-panel"></div>
         </div>
-
         <div class="horizontal-list" id="hz-chat-list"></div>
-
-        <div class="chat-area">
-            <div style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 10px;" id="chat-messages-container"></div>
-        </div>
-
+        <div class="chat-area" id="chat-messages-container"></div>
         <div class="chat-input-bar">
             <input type="text" id="chat-input-field" placeholder="Mesajınızı yazın...">
             <button id="chat-send-btn">➔</button>
         </div>
     </div>
-
     <div id="page-d" class="page">
         <button id="back-to-a-btn" class="btn-back-a">Geri</button>
         <button id="new-game-btn" class="btn-new-game">Yeni Oyun</button>
         <button id="main-distribute-btn" class="main-trigger-btn">VƏZİFƏLƏRİ TƏYİN ET</button>
     </div>
-
     <div class="countdown-overlay" id="global-countdown-overlay">
         <div class="countdown-number" id="global-countdown-num">5</div>
     </div>
     <div class="start-announcement" id="global-start-banner">OYUN BAŞLADI, UĞURLAR</div>
-
     <div class="modal" id="confirm-modal">
         <div class="modal-box">
-            <p>Əminsinizmi? Bütün rollar və çat sıfırlanacaq.</p>
+            <p>Əminsinizmi? Bütün rollar və çat sıfırlanacak.</p>
             <div class="modal-btns">
                 <button class="btn-yes" id="modal-yes">Bəli</button>
                 <button class="btn-no" id="modal-no">Xeyr</button>
             </div>
         </div>
     </div>
-
     <script>
-        // --- 1. FIREBASE QURULUMU (mafia-game-b6bf7, Belgium) ---
+        function resetAppHeight() {
+            const doc = document.documentElement;
+            doc.style.setProperty('--app-height', `${window.innerHeight}px`);
+        }
+        window.addEventListener('resize', resetAppHeight);
+        window.addEventListener('orientationchange', resetAppHeight);
+        resetAppHeight();
+
         const firebaseConfig = {
             databaseURL: "https://mafia-game-b6bf7-default-rtdb.europe-west1.firebasedatabase.app/"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- 2. DEYİŞƏNLƏR VƏ SEÇİCİLƏR ---
         let currentUsername = "";
         let selectedTargets = []; 
         let isAllSelected = true;  
@@ -307,6 +270,7 @@
         function showPage(pageKey) {
             Object.values(pages).forEach(p => p.classList.remove('active'));
             pages[pageKey].classList.add('active');
+            resetAppHeight();
             if (pageKey !== 'B') stopCamera('admin');
             if (pageKey !== 'A') {
                 document.getElementById('register-panel').style.display = 'none';
@@ -316,6 +280,7 @@
 
         document.getElementById('open-register-overlay').addEventListener('click', () => {
             document.getElementById('register-panel').style.display = 'flex';
+            resetAppHeight();
         });
         document.getElementById('close-register-overlay').addEventListener('click', () => {
             document.getElementById('register-panel').style.display = 'none';
@@ -343,19 +308,14 @@
                     currentUsername = u;
                     document.getElementById('cabinet-title').innerText = u;
                     document.getElementById('cabinet-avatar').src = userData.photo || "https://via.placeholder.com/150";
-                    
-                    // Problem 2 Həlli: Canlı dinləyicidən dərhal ƏVVƏL birbaşa bir dəfəlik arxiv sorğusu göndərilərək mesajlar ekrana oyanır
-                    db.ref('chat').once('value', () => {
-                        showPage('C');
-                        listenToCabinetRole();
-                    });
+                    showPage('C');
+                    loadChatHistoryAndListen();
                 } else {
                     alert("Ad və ya şifrə yanlışdır, yaxud oyunçu aktiv deyil!");
                 }
             });
         });
 
-        // --- 4. SİMA TİPLİ REAL İNSAN ÜZÜ AŞKARLAMA SİSTEMİ ---
         function startFaceDetectionSimulated(videoElement, overlayElement, statusElement, buttonElement) {
             if (faceDetectionInterval) clearInterval(faceDetectionInterval);
             
@@ -405,7 +365,6 @@
             }, 300);
         }
 
-        // --- 5. KAMERA VƏ FAYLDAN YÜKLƏMƏ METODLARI ---
         function setupCameraModule(toggleBtnId, blockId, videoId, overlayId, statusId, snapBtnId, retakeBtnId, previewId) {
             const toggleBtn = document.getElementById(toggleBtnId);
             const block = document.getElementById(blockId);
@@ -434,7 +393,7 @@
                         videoEl.srcObject = streamRef;
                         startFaceDetectionSimulated(videoEl, overlayEl, statusEl, snapBtn);
                     } catch (err) {
-                        alert("Kameraya giriş icazəsi rədd edildi və ya cihaz tapılmadı!");
+                        alert("Kameraya giriş icazəsi rədd edildi!");
                         block.style.display = 'none';
                     }
                 }
@@ -507,7 +466,7 @@
 
         function handleFileSelection(inputElement, previewImgId) {
             inputElement.addEventListener('change', (e) => {
-                const file = e.target.files[0];
+                const file = e.target.files;
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = function(event) {
@@ -534,13 +493,12 @@
         handleFileSelection(document.getElementById('admin-file-input'), 'captured-preview');
         handleFileSelection(document.getElementById('reg-file-input'), 'reg-captured-preview');
 
-        // --- 6. QEYDİYYAT TAMAMLAMA PROSESİ ---
         document.getElementById('submit-register-btn').addEventListener('click', () => {
             const name = document.getElementById('reg-name').value.trim();
             const pass = document.getElementById('reg-pass').value.trim();
             
             if (!name || !pass || !localPhotoBase64) {
-                alert("Qeydiyyat xətası! Ad, şifrə və şəkil mütləq şəkildə daxil edilməlidir.");
+                alert("Qeydiyyat xətası! Ad, şifrə və şəkil mütləqdir.");
                 return;
             }
 
@@ -551,7 +509,7 @@
                 status: "active",
                 role: "Boşdur"
             }).then(() => {
-                alert("Qeydiyyatınız uğurla tamamlandı! İndi ana səhifədən daxil ola bilərsiniz.");
+                alert("Qeydiyyatınız tamamlandı!");
                 document.getElementById('reg-name').value = "";
                 document.getElementById('reg-pass').value = "";
                 document.getElementById('register-panel').style.display = 'none';
@@ -559,7 +517,6 @@
             });
         });
 
-        // --- 7. ADMIN PANELİ: OYUNÇU ƏLAVƏ ET VƏ ROLLAR ---
         document.getElementById('add-player-btn').addEventListener('click', () => {
             const name = document.getElementById('p-name').value.trim();
             const pass = document.getElementById('p-pass').value.trim();
@@ -592,7 +549,6 @@
             const players = snap.val() || {};
             const activeDiv = document.getElementById('active-players-list');
             const archiveDiv = document.getElementById('archive-players-list');
-            if (!activeDiv || !archiveDiv) return;
             activeDiv.innerHTML = "";
             archiveDiv.innerHTML = "";
 
@@ -636,8 +592,8 @@
                     item.className = 'player-item';
                     item.style.border = "1px dashed #ff3333";
                     item.innerHTML = `
-                        <span style="color:#ff8888; font-size:11px;">[Xarab Köhnə Data: ${key}]</span>
-                        <button class="btn-mini" style="background:#ff3333;">Kökündən Sil</button>
+                        <span style="color:#ff8888; font-size:11px;">[Köhnə Data: ${key}]</span>
+                        <button class="btn-mini" style="background:#ff3333;">Sil</button>
                     `;
                     item.querySelector('button').addEventListener('click', () => {
                         db.ref('players/' + key).remove();
@@ -656,7 +612,6 @@
                 return;
             }
             const configDiv = document.getElementById('roles-config-list');
-            if(!configDiv) return;
             configDiv.innerHTML = "";
 
             Object.keys(roles).forEach(rName => {
@@ -685,7 +640,6 @@
             });
         });
 
-        // --- 8. SƏHİFƏ D: KİLİDLİ ROLLARIN DAXİL EDİLMƏSİ ---
         let isGameDistributed = false;
         db.ref('game_status/distributed').on('value', snap => {
             isGameDistributed = !!snap.val();
@@ -705,7 +659,7 @@
                 btn.innerText = `Oyunçu azdır (${activeCount}/5)`;
             } else if (isGameDistributed) {
                 btn.disabled = true;
-                btn.innerText = "Vəzifələr Paylanıb (Kilidli)";
+                btn.innerText = "Vəzifələr Paylanıb";
             } else {
                 btn.disabled = false;
                 btn.innerText = "VƏZİFƏLƏRİ TƏYİN ET";
@@ -790,7 +744,6 @@
             });
         }
 
-        // --- 9. SƏHİFƏ C: OYUNÇU KABİNETİ MEXANIZMLƏRI ---
         const sidebarTrigger = document.getElementById('sidebar-trigger');
         const sidebarPanel = document.getElementById('sidebar-panel');
         let isPanelOpen = false;
@@ -817,123 +770,23 @@
             else if (isPanelOpen && diffX < -30) togglePanel();
         }, { passive: true });
 
-        function listenToCabinetRole() {
-            if (!currentUsername || currentUsername === "Admin") return;
-            
-            db.ref('players').on('value', snap => {
-                const allPlayers = snap.val() || {};
-                const myData = allPlayers[currentUsername];
-                if (!myData) return;
-
-                const myRole = myData.role || "Boşdur";
-                document.getElementById('cabinet-role-box').innerHTML = myRole.split('').join('<br>');
-
-                const alliancePanel = document.getElementById('mafia-alliance-panel');
-                if(alliancePanel) {
-                    alliancePanel.innerHTML = "";
-                    const isMafiaFaction = (myRole.toLowerCase() === "mafia" || myRole.toLowerCase() === "don");
-                    
-                    if (isMafiaFaction) {
-                        alliancePanel.style.display = "flex";
-                        Object.keys(allPlayers).forEach(k => {
-                            const p = allPlayers[k];
-                            if (p && p.status === "active" && p.name !== currentUsername) {
-                                const rLower = (p.role || "").toLowerCase();
-                                if (rLower === "mafia" || rLower === "don") {
-                                    const row = document.createElement('div');
-                                    row.className = 'mafia-member-row';
-                                    row.innerHTML = `
-                                        <img src="${p.photo}" alt="m">
-                                        <span>${p.name}</span>
-                                    `;
-                                    alliancePanel.appendChild(row);
-                                }
-                            }
-                        });
-                    } else {
-                        alliancePanel.style.display = "none";
-                    }
-                }
-
-                const hzList = document.getElementById('hz-chat-list');
-                if(hzList) {
-                    hzList.innerHTML = "";
-
-                    const allCard = document.createElement('div');
-                    allCard.className = `hz-player-card ${isAllSelected ? 'all-selected' : ''}`;
-                    allCard.innerHTML = `
-                        <div class="all-icon-wrapper">ALL</div>
-                        <span>Hamı</span>
-                    `;
-                    allCard.addEventListener('click', () => {
-                        isAllSelected = true;
-                        selectedTargets = [];
-                        document.querySelectorAll('.hz-player-card').forEach(c => c.classList.remove('selected'));
-                        allCard.classList.add('all-selected');
-                    });
-                    hzList.appendChild(allCard);
-
-                    Object.keys(allPlayers).forEach(k => {
-                        const p = allPlayers[k];
-                        if (p && p.status === "active" && p.name && p.photo) {
-                            if (p.name === currentUsername) return; 
-
-                            const card = document.createElement('div');
-                            card.className = 'hz-player-card';
-                            if (selectedTargets.includes(p.name)) card.classList.add('selected');
-
-                            card.innerHTML = `
-                                <img src="${p.photo}" alt="p">
-                                <span>${p.name}</span>
-                            `;
-                            
-                            card.addEventListener('click', () => {
-                                isAllSelected = false;
-                                allCard.classList.remove('all-selected');
-
-                                if (selectedTargets.includes(p.name)) {
-                                    selectedTargets = selectedTargets.filter(t => t !== p.name);
-                                    card.classList.remove('selected');
-                                    if (selectedTargets.length === 0) {
-                                        isAllSelected = true;
-                                        allCard.classList.add('all-selected');
-                                    }
-                                } else {
-                                    selectedTargets.push(p.name);
-                                    card.classList.add('selected');
-                                }
-                            });
-                            hzList.appendChild(card);
-                        }
-                    });
-                }
-            });
-        }
-
-        document.getElementById('chat-send-btn').addEventListener('click', sendMessage);
-        document.getElementById('chat-input-field').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-
-        function sendMessage() {
-            const input = document.getElementById('chat-input-field');
-            const txt = input.value.trim();
-            if (!txt || !currentUsername) return;
-
-            const msgData = {
-                sender: currentUsername,
-                text: txt,
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                targets: selectedTargets.length > 0 ? selectedTargets : "all"
-            };
-
-            db.ref('chat').push(msgData).then(() => { input.value = ""; });
-        }
-
-        db.ref('chat').on('value', snap => {
+        function loadChatHistoryAndListen() {
             if (!currentUsername || currentUsername === "Admin") return;
             const chatBox = document.getElementById('chat-messages-container');
-            if(!chatBox) return;
             chatBox.innerHTML = "";
-            const messages = snap.val() || {};
+
+            db.ref('chat').once('value', snapshot => {
+                renderMessages(snapshot.val() || {});
+                db.ref('chat').on('value', liveSnapshot => {
+                    renderMessages(liveSnapshot.val() || {});
+                });
+            });
+            listenToCabinetPlayersAndRoles();
+        }
+
+        function renderMessages(messages) {
+            const chatBox = document.getElementById('chat-messages-container');
+            chatBox.innerHTML = "";
 
             Object.keys(messages).forEach(mKey => {
                 const m = messages[mKey];
@@ -962,8 +815,117 @@
                 }
             });
             chatBox.scrollTop = chatBox.scrollHeight;
-        });
+        }
 
+        function listenToCabinetPlayersAndRoles() {
+            db.ref('players').on('value', snap => {
+                const allPlayers = snap.val() || {};
+                const myData = allPlayers[currentUsername];
+                if (!myData) return;
+
+                const myRole = myData.role || "Boşdur";
+                document.getElementById('cabinet-role-box').innerHTML = myRole.split('').join('<br>');
+
+                const alliancePanel = document.getElementById('mafia-alliance-panel');
+                alliancePanel.innerHTML = "";
+
+                const isMafiaFaction = (myRole.toLowerCase() === "mafia" || myRole.toLowerCase() === "don");
+                
+                if (isMafiaFaction) {
+                    alliancePanel.style.display = "flex";
+                    Object.keys(allPlayers).forEach(k => {
+                        const p = allPlayers[k];
+                        if (p.status === "active" && p.name !== currentUsername) {
+                            const rLower = (p.role || "").toLowerCase();
+                            if (rLower === "mafia" || rLower === "don") {
+                                const row = document.createElement('div');
+                                row.className = 'mafia-member-row';
+                                row.innerHTML = `
+                                    <img src="${p.photo}" alt="m">
+                                    <span>${p.name}</span>
+                                `;
+                                alliancePanel.appendChild(row);
+                            }
+                        }
+                    });
+                } else {
+                    alliancePanel.style.display = "none";
+                }
+
+                const hzList = document.getElementById('hz-chat-list');
+                hzList.innerHTML = "";
+
+                const allCard = document.createElement('div');
+                allCard.className = `hz-player-card ${isAllSelected ? 'all-selected' : ''}`;
+                allCard.innerHTML = `
+                    <div class="all-icon-wrapper">ALL</div>
+                    <span>Hamı</span>
+                `;
+                allCard.addEventListener('click', () => {
+                    isAllSelected = true;
+                    selectedTargets = [];
+                    document.querySelectorAll('.hz-player-card').forEach(c => c.classList.remove('selected'));
+                    allCard.classList.add('all-selected');
+                });
+                hzList.appendChild(allCard);
+
+                Object.keys(allPlayers).forEach(k => {
+                    const p = allPlayers[k];
+                    if (p.status === "active" && p.name && p.photo) {
+                        if (p.name === currentUsername) return; 
+
+                        const card = document.createElement('div');
+                        card.className = 'hz-player-card';
+                        if (selectedTargets.includes(p.name)) card.classList.add('selected');
+
+                        card.innerHTML = `
+                            <img src="${p.photo}" alt="p">
+                            <span>${p.name}</span>
+                        `;
+                        
+                        card.addEventListener('click', () => {
+                            isAllSelected = false;
+                            allCard.classList.remove('all-selected');
+
+                            if (selectedTargets.includes(p.name)) {
+                                selectedTargets = selectedTargets.filter(t => t !== p.name);
+                                card.classList.remove('selected');
+                                if (selectedTargets.length === 0) {
+                                    isAllSelected = true;
+                                    allCard.classList.add('all-selected');
+                                    resetAppHeight();
+                                }
+                            } else {
+                                selectedTargets.push(p.name);
+                                card.classList.add('selected');
+                            }
+                        });
+                        hzList.appendChild(card);
+                    }
+                });
+            });
+        }
+
+        document.getElementById('chat-send-btn').addEventListener('click', sendMessage);
+        document.getElementById('chat-input-field').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input-field');
+            const txt = input.value.trim();
+            if (!txt || !currentUsername) return;
+
+            const msgData = {
+                sender: currentUsername,
+                text: txt,
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                targets: selectedTargets.length > 0 ? selectedTargets : "all"
+            };
+
+            db.ref('chat').push(msgData).then(() => { 
+                input.value = ""; 
+                resetAppHeight();
+            });
+        }
     </script>
 </body>
 </html>
