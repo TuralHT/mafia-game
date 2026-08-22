@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mafia Premium Control</title>
+    <!-- Firebase SDK v9 (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
@@ -14,19 +15,21 @@
         
         /* Səhifə A: Giriş */
         #page-a { background: radial-gradient(circle, #1a1a1a 0%, #050505 100%); justify-content: center; align-items: center; }
-        .login-btn-top { position: absolute; top: 15px; left: 15px; background: #27ae60; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 14px; }
-        .login-box { background: rgba(20, 20, 20, 0.9); padding: 30px; border-radius: 8px; border: 1px solid #333; width: 90%; max-width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.7); text-align: center; }
+        .login-btn-top { position: absolute; top: 15px; left: 15px; background: #27ae60; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; }
+        .login-box { background: rgba(20, 20, 20, 0.9); padding: 30px; border-radius: 8px; border: 1px solid #333; width: 90%; max-width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.7); text-align: center; position: relative; }
         .login-box h2 { margin-bottom: 20px; color: #ff3333; letter-spacing: 2px; }
         .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; font-size: 16px; }
         .login-box button { width: 100%; padding: 12px; background: #ff3333; border: none; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        .register-link { color: #5288c1; text-decoration: none; display: inline-block; margin-top: 15px; font-size: 14px; cursor: pointer; }
+        .register-link { color: #5288c1; margin-top: 15px; display: inline-block; cursor: pointer; text-decoration: underline; font-size: 14px; }
         
-        /* Üzən Qeydiyyat Pəncərəsi */
-        .register-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; }
-        .register-box { background: #151515; padding: 25px; border-radius: 8px; border: 1px solid #333; width: 90%; max-width: 360px; position: relative; }
-        .close-reg-btn { position: absolute; top: 10px; right: 15px; font-size: 22px; color: #aaa; cursor: pointer; }
-        .register-box h3 { margin-bottom: 15px; color: #ff3333; text-align: center; }
-
+        /* Üzən Qeydiyyat Pəncərəsi Panel */
+        .register-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; overflow-y: auto; padding: 20px; }
+        .register-box { background: #141414; padding: 25px; border-radius: 8px; border: 1px solid #333; width: 100%; max-width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; max-height: 95vh; overflow-y: auto; }
+        .register-box h3 { color: #ff3333; margin-bottom: 15px; letter-spacing: 1px; }
+        .register-box input { width: 100%; padding: 10px; margin-bottom: 12px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; }
+        .file-input-label { display: block; padding: 10px; background: #34495e; color: white; border-radius: 4px; margin-bottom: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
+        .file-input-label input { display: none; }
+        
         /* Səhifə B: Admin Paneli */
         #page-b { display: none; flex-direction: row; height: 100vh; }
         #page-b.active { display: flex; }
@@ -35,8 +38,8 @@
         .admin-right { background: #151515; }
         .admin-section { background: #1e1e1e; padding: 15px; border-radius: 6px; border: 1px solid #2a2a2a; }
         .admin-section h3 { margin-bottom: 10px; color: #ff3333; border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 16px; }
-        .admin-form input, .register-box input { width: 100%; padding: 8px; margin-bottom: 8px; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 4px; }
-        .admin-form button, .btn-action, .register-box button { width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .admin-form input { width: 100%; padding: 8px; margin-bottom: 8px; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 4px; }
+        .admin-form button, .btn-action { width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
         .btn-action.danger { background: #c0392b; }
         .player-item, .archive-item, .role-item { display: flex; align-items: center; justify-content: space-between; background: #252525; padding: 8px; border-radius: 4px; margin-bottom: 5px; font-size: 14px; }
         .player-item img, .archive-item img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
@@ -46,44 +49,55 @@
         .role-controls { display: flex; align-items: center; gap: 5px; }
         .role-controls button { width: 25px; height: 25px; background: #444; border: none; color: white; font-weight: bold; border-radius: 3px; cursor: pointer; }
         
-        /* Kamera və Qalereya Bölməsi */
+        /* Kamera Bölməsi və Sima Tipli Şəkərbura Çərçivəsi */
         .camera-container { display: none; flex-direction: column; align-items: center; gap: 10px; background: #222; padding: 10px; border-radius: 6px; margin-top: 5px; position: relative; }
-        .video-wrapper { position: relative; width: 100%; max-width: 240px; height: 240px; background: #000; border-radius: 50%; overflow: hidden; margin: 0 auto; border: 3px dashed #ff3333; }
+        .video-wrapper { position: relative; width: 100%; max-width: 240px; aspect-ratio: 4/3; background: #000; border-radius: 4px; overflow: hidden; }
         #video, #video-reg { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-        .biometric-guide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 4px solid transparent; border-radius: 50%; box-shadow: 0 0 0 999px rgba(0,0,0,0.5); pointer-events: none; }
-        .biometric-guide::before { content: "ÜZÜ DAİRƏYƏ DAXİL EDİN"; position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: bold; color: #ff3333; width: 100%; text-align: center; text-shadow: 0 1px 3px #000; letter-spacing: 1px; }
-        .biometric-status { font-size: 11px; text-align: center; margin-top: -5px; font-weight: bold; }
-        .status-scanning { color: #e67e22; }
-        .status-ready { color: #27ae60; }
+        
+        /* Sima Şəkərbura Formasında Uzunsov Çərçivə Overlay */
+        .shekerbura-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 130px; height: 180px; border: 3px dashed #ff3333; border-radius: 100px / 130px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); box-sizing: border-box; transition: border-color 0.3s; }
+        .shekerbura-overlay.detected { border-color: #27ae60; border-style: solid; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3); }
+        
+        .face-status-text { font-size: 11px; color: #ff3333; font-weight: bold; margin-top: 2px; text-align: center; }
+        .face-status-text.detected { color: #27ae60; }
+        
         .camera-btns { display: flex; gap: 10px; width: 100%; }
         .camera-btns button { flex: 1; padding: 8px; font-size: 12px; }
         .img-preview { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; display: none; margin: 5px auto; border: 1px solid #555; }
-        .file-label { display: block; text-align: center; padding: 8px; background: #34495e; color: white; border-radius: 4px; font-size: 13px; font-weight: bold; margin-bottom: 5px; cursor: pointer; }
 
         /* Səhifə C: Oyunçu Kabineti */
-        #page-c { background: #0e1621; height: 100vh; overflow: hidden; display: none; }
+        #page-c { background: #0e1621; height: 100vh; overflow: hidden; display: none; position: relative; }
         #page-c.active { display: flex; flex-direction: column; }
         .player-header { height: 60px; background: #17212b; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; border-bottom: 1px solid #101921; }
         .player-header h2 { font-size: 18px; color: #fff; }
         .player-header img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #5288c1; object-fit: cover; }
         
-        /* Gizli Rol Pəncərəsi (25mm x 13mm) */
+        /* Gizli Rol Pəncərəsi (Milli Ölçülər: 25mm x 13mm) */
         .sidebar-trigger { position: absolute; left: 0; top: 35%; width: 15px; height: 60px; background: #24303f; border-radius: 0 8px 8px 0; border: 1px solid #313e4f; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #888; font-size: 12px; z-index: 99; touch-action: none; }
-        .sidebar-panel { position: absolute; left: -100px; top: 35%; width: 13mm; height: 25mm; background: #17212b; border: 1px solid #ff3333; box-shadow: 5px 0 15px rgba(0,0,0,0.5); z-index: 98; border-radius: 0 6px 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: left 0.2s ease; overflow: hidden; }
+        .sidebar-panel { position: absolute; left: -100px; top: 35%; width: 13mm; height: auto; min-height: 25mm; background: #17212b; border: 1px solid #ff3333; box-shadow: 5px 0 15px rgba(0,0,0,0.5); z-index: 98; border-radius: 0 6px 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5px 0; transition: left 0.2s ease; overflow: hidden; }
         .sidebar-panel.open { left: 0; }
-        .role-text-vertical { display: flex; flex-direction: column; align-items: center; justify-content: center; text-transform: uppercase; color: #ff3333; font-weight: bold; font-size: 10px; line-height: 1.1; letter-spacing: 0px; text-align: center; }
+        .role-text-vertical { display: flex; flex-direction: column; align-items: center; justify-content: center; text-transform: uppercase; color: #ff3333; font-weight: bold; font-size: 10px; line-height: 1.1; letter-spacing: 0px; text-align: center; margin-bottom: 10px; }
+        
+        /* Mafiya İttifaqı Siyahısı Bölməsi */
+        .mafia-alliance-container { width: 100%; border-top: 1px dashed #ff3333; padding-top: 5px; display: none; flex-direction: column; align-items: center; gap: 5px; }
+        .mafia-member-row { display: flex; align-items: center; gap: 4px; width: 90%; background: rgba(255,51,51,0.1); padding: 3px; border-radius: 4px; overflow: hidden; }
+        .mafia-member-row img { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+        .mafia-member-row span { font-size: 8px; color: #ff8888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; font-weight: normal; }
 
         /* Horizontal Oyunçu Siyahısı */
         .horizontal-list { height: 75px; background: #17212b; display: flex; align-items: center; gap: 15px; padding: 0 15px; overflow-x: auto; border-bottom: 1px solid #101921; scrollbar-width: none; }
         .horizontal-list::-webkit-scrollbar { display: none; }
         .hz-player-card { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 50px; position: relative; }
-        .hz-player-card img, .hz-all-card .all-icon { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s; }
-        .hz-all-card .all-icon { background: #5288c1; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; }
-        .hz-player-card.selected img, .hz-all-card.selected .all-icon { border-color: #ff3333; }
-        .hz-player-card span, .hz-all-card span { font-size: 11px; color: #7f91a4; margin-top: 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 55px; }
+        .hz-player-card img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s; }
+        .hz-player-card.selected img { border-color: #ff3333; }
+        .hz-player-card span { font-size: 11px; color: #7f91a4; margin-top: 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 55px; }
+        
+        /* Mərkəzi Hamı İkonu */
+        .all-icon-wrapper { width: 45px; height: 45px; border-radius: 50%; background: #24303f; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #fff; border: 2px solid transparent; }
+        .hz-player-card.all-selected .all-icon-wrapper { border-color: #27ae60; background: #2b5278; }
 
         /* Çat Mesaj Sahəsi */
-        .chat-area { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; }
+        .chat-area { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; margin-bottom: 25px; }
         .msg { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; word-break: break-word; }
         .msg.incoming { background: #182533; align-self: flex-start; color: #fff; border-bottom-left-radius: 2px; }
         .msg.outgoing { background: #2b5278; align-self: flex-end; color: #fff; border-bottom-right-radius: 2px; }
@@ -91,7 +105,8 @@
         .msg .msg-target { font-size: 9px; color: #ff8888; font-style: italic; display: block; margin-top: 3px; }
         .msg .msg-time { font-size: 9px; color: #a1b2c4; text-align: right; display: block; margin-top: 2px; }
 
-        .chat-input-bar { height: 60px; background: #17212b; display: flex; align-items: center; padding: 0 10px; gap: 10px; border-top: 1px solid #101921; position: relative; }
+        /* Çat paneli bir qədər yuxarı qaldırıldı */
+        .chat-input-bar { height: 60px; background: #17212b; display: flex; align-items: center; padding: 0 10px; gap: 10px; border-top: 1px solid #101921; position: absolute; bottom: 25px; left: 0; width: 100vw; z-index: 10; }
         .chat-input-bar input { flex: 1; padding: 12px; background: #24303f; border: none; color: white; border-radius: 20px; font-size: 15px; outline: none; }
         .chat-input-bar button { width: 45px; height: 45px; background: #5288c1; border: none; color: white; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
 
@@ -102,7 +117,7 @@
         .main-trigger-btn { width: 180px; height: 180px; border-radius: 50%; background: #c0392b; border: 8px solid #962d22; color: white; font-weight: bold; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 0 30px rgba(192,57,43,0.5); transition: all 0.3s; user-select: none; }
         .main-trigger-btn:disabled { background: #3a3a3a !important; border-color: #2b2b2b !important; color: #777 !important; cursor: not-allowed; box-shadow: none !important; }
         
-        /* Böyük Transparent Geri Sayım Overlay */
+        /* Geri Sayım Overlay */
         .countdown-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.1); display: none; justify-content: center; align-items: center; z-index: 9999; pointer-events: none; }
         .countdown-number { font-size: 140px; font-weight: 900; color: #ff3333; text-shadow: 0 0 40px rgba(255,51,51,0.8); font-family: Impact, sans-serif; }
         .start-announcement { font-size: 45px; font-weight: bold; color: #27ae60; text-shadow: 0 0 30px rgba(39,174,96,0.8); text-align: center; display: none; font-family: 'Arial Black', sans-serif; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; width: 90%; pointer-events: none; }
@@ -133,37 +148,39 @@
             <input type="text" id="login-username" placeholder="Adınız">
             <input type="password" id="login-password" placeholder="Şifrəniz">
             <button id="login-submit-btn">Daxil ol</button>
-            <span class="register-link" id="open-register-overlay">Qeydiyyatdan keç</span>
+            <div id="open-register-overlay" class="register-link">Qeydiyyatdan keç</div>
         </div>
     </div>
 
-    <!-- Üzən Qeydiyyat Pəncərəsi -->
-    <div class="register-overlay" id="register-panel">
+    <div id="register-panel" class="register-overlay">
         <div class="register-box">
-            <span class="close-reg-btn" id="close-register-overlay">&times;</span>
-            <h3>Yeni Oyunçu Qeydiyyatı</h3>
-            <input type="text" id="reg-name" placeholder="İstifadəçi Adınız">
-            <input type="password" id="reg-pass" placeholder="Şifrəniz">
+            <h3>YENİ QEYDİYYAT</h3>
+            <input type="text" id="reg-name" placeholder="Oyunçu Adı">
+            <input type="password" id="reg-pass" placeholder="Şifrə">
             
-            <label class="file-label" for="reg-file">📁 Qalereyadan Şəkil Seç</label>
-            <input type="file" id="reg-file" accept="image/*" style="display:none;">
-            
-            <button id="reg-camera-btn" style="background:#34495e; margin-bottom:5px;">📷 Ön Kamera ilə Selfi Çək</button>
+            <label class="file-input-label">
+                📁 Qalereyadan Şəkil Seç
+                <input type="file" id="reg-file-input" accept="image/*">
+            </label>
+
+            <button id="reg-camera-toggle-btn" style="background:#e67e22; margin-bottom:5px; width:100%; padding:10px; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">📷 Kamera ilə Selfi Çək</button>
             
             <div class="camera-container" id="reg-cam-block">
                 <div class="video-wrapper">
                     <video id="video-reg" autoplay playsinline></video>
-                    <div class="biometric-guide"></div>
+                    <div class="shekerbura-overlay" id="reg-shekerbura"></div>
                 </div>
-                <div class="biometric-status status-scanning" id="reg-biometric-status">Üz skan edilir...</div>
+                <div class="face-status-text" id="reg-face-status">Üz çərçivəyə uyğunlaşdırılmalıdır</div>
+                <canvas id="canvas-reg" style="display:none;"></canvas>
                 <div class="camera-btns">
-                    <button id="reg-snap-btn" style="background:#e67e22; color:white; border:none; border-radius:3px;" disabled>Skan Gözlənilir</button>
-                    <button id="reg-retake-btn" style="background:#7f8c8d; color:white; border:none; border-radius:3px; display:none;">Yenidən Çək</button>
+                    <button id="reg-snap-btn" style="background:#27ae60; color:white; border:none; border-radius:3px;" disabled>Çək</button>
+                    <button id="reg-retake-btn" style="background:#7f8c8d; color:white; border:none; border-radius:3px; display:none;">Yenidən</button>
                 </div>
             </div>
+            <img id="reg-captured-preview" class="img-preview" src="">
             
-            <img id="reg-preview" class="img-preview" src="">
-            <button id="submit-register-btn" style="background:#27ae60; margin-top:15px;">Qeydiyyatı Tamamla</button>
+            <button id="submit-register-btn" style="width:100%; padding:12px; background:#27ae60; color:white; font-weight:bold; border:none; border-radius:4px; cursor:pointer; margin-top:15px;">Qeydiyyatı Tamamla</button>
+            <button id="close-register-overlay" style="width:100%; padding:10px; background:#c0392b; color:white; font-weight:bold; border:none; border-radius:4px; cursor:pointer; margin-top:8px;">Ləğv Et</button>
         </div>
     </div>
 
@@ -175,18 +192,21 @@
                     <input type="text" id="p-name" placeholder="Oyunçu Adı">
                     <input type="password" id="p-pass" placeholder="Şifrə">
                     
-                    <label class="file-label" for="admin-file">📁 Qalereyadan Şəkil Seç</label>
-                    <input type="file" id="admin-file" accept="image/*" style="display:none;">
+                    <label class="file-input-label">
+                        📁 Qalereyadan Seç
+                        <input type="file" id="admin-file-input" accept="image/*">
+                    </label>
 
-                    <button id="camera-toggle-btn" style="background:#34495e; margin-bottom:5px;">📷 Kamera ilə Şəkil Çək</button>
+                    <button id="camera-toggle-btn" style="background:#34495e; margin-bottom:5px;">📷 Şəkil Çək</button>
                     <div class="camera-container" id="cam-block">
                         <div class="video-wrapper">
                             <video id="video" autoplay playsinline></video>
-                            <div class="biometric-guide"></div>
+                            <div class="shekerbura-overlay" id="admin-shekerbura"></div>
                         </div>
-                        <div class="biometric-status status-scanning" id="admin-biometric-status">Üz skan edilir...</div>
+                        <div class="face-status-text" id="admin-face-status">Üz çərçivəyə uyğunlaşdırılmalıdır</div>
+                        <canvas id="canvas" style="display:none;"></canvas>
                         <div class="camera-btns">
-                            <button id="snap-btn" style="background:#e67e22; color:white; border:none; border-radius:3px;" disabled>Skan Gözlənilir</button>
+                            <button id="snap-btn" style="background:#e67e22; color:white; border:none; border-radius:3px;" disabled>Çək</button>
                             <button id="retake-btn" style="background:#7f8c8d; color:white; border:none; border-radius:3px; display:none;">Yenidən</button>
                         </div>
                     </div>
@@ -225,15 +245,12 @@
         <div id="sidebar-trigger" class="sidebar-trigger">▶</div>
         <div id="sidebar-panel" class="sidebar-panel">
             <div class="role-text-vertical" id="cabinet-role-box">B<br>O<br>Ş<br>D<br>U<br>R</div>
+            <div class="mafia-alliance-container" id="mafia-alliance-panel"></div>
         </div>
 
-        <div class="horizontal-list" id="hz-chat-list">
-            <!-- Dynamic elements load here -->
-        </div>
+        <div class="horizontal-list" id="hz-chat-list"></div>
 
-        <div class="chat-area" id="chat-messages-container">
-            <!-- Messages load here -->
-        </div>
+        <div class="chat-area" id="chat-messages-container"></div>
 
         <div class="chat-input-bar">
             <input type="text" id="chat-input-field" placeholder="Mesajınızı yazın...">
@@ -254,7 +271,7 @@
 
     <div class="modal" id="confirm-modal">
         <div class="modal-box">
-            <p>Əminsinizmi? Bütün rollar və çat sıfırlanacaq.</p>
+            <p>Əminsinizmi? Bütün rollar və çat sıfırlanacak.</p>
             <div class="modal-btns">
                 <button class="btn-yes" id="modal-yes">Bəli</button>
                 <button class="btn-no" id="modal-no">Xeyr</button>
@@ -263,20 +280,19 @@
     </div>
 
     <script>
-        // --- 1. FIREBASE CONFIG ---
+        // --- FIREBASE CONFIG ---
         const firebaseConfig = {
             databaseURL: "https://mafia-game-b6bf7-default-rtdb.europe-west1.firebasedatabase.app/"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- 2. GLOBAL VARIABLES ---
         let currentUsername = "";
-        let selectedTargets = []; // Array of private targets, empty means "all"
-        let isAllSelected = true;  // Default state is All
-        let localPhotoBase64 = ""; 
+        let selectedTargets = [];
+        let isAllSelected = true;
+        let localPhotoBase64 = "";
         let streamRef = null;
-        let biometricTimeout = null;
+        let faceDetectionInterval = null;
 
         const pages = {
             A: document.getElementById('page-a'),
@@ -288,20 +304,25 @@
         function showPage(pageKey) {
             Object.values(pages).forEach(p => p.classList.remove('active'));
             pages[pageKey].classList.add('active');
-            if (pageKey !== 'B') stopCamera();
-            document.getElementById('register-panel').style.display = 'none';
+            if (pageKey !== 'B') stopCamera('admin');
+            if (pageKey !== 'A') {
+                document.getElementById('register-panel').style.display = 'none';
+                stopCamera('reg');
+            }
         }
 
-        // --- 3. NAVIGATION & REGISTRATION INTERFACES ---
+        document.getElementById('open-register-overlay').addEventListener('click', () => {
+            document.getElementById('register-panel').style.display = 'flex';
+        });
+        document.getElementById('close-register-overlay').addEventListener('click', () => {
+            document.getElementById('register-panel').style.display = 'none';
+            stopCamera('reg');
+        });
+
         document.getElementById('nav-to-d-btn').addEventListener('click', () => showPage('D'));
         document.getElementById('back-to-a-btn').addEventListener('click', () => showPage('A'));
         document.getElementById('logout-b-btn').addEventListener('click', () => { currentUsername = ""; showPage('A'); });
         
-        const regPanel = document.getElementById('register-panel');
-        document.getElementById('open-register-overlay').addEventListener('click', () => { regPanel.style.display = 'flex'; });
-        document.getElementById('close-register-overlay').addEventListener('click', () => { regPanel.style.display = 'none'; stopCamera(); });
-
-        // Login core
         document.getElementById('login-submit-btn').addEventListener('click', () => {
             const u = document.getElementById('login-username').value.trim();
             const p = document.getElementById('login-password').value.trim();
@@ -327,539 +348,417 @@
             });
         });
 
-        // File compression utility
-        function handleFileSelection(file, imgPreviewElement) {
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvasResize = document.createElement('canvas');
-                    const max_size = 120;
-                    let width = img.width;
-                    let height = img.height;
-                    if (width > height) {
-                        if (width > max_size) { height *= max_size / width; width = max_size; }
-                    } else {
-                        if (height > max_size) { width *= max_size / height; height = max_size; }
+        function startFaceDetectionSimulated(videoElement, overlayElement, statusElement, buttonElement) {
+            if (faceDetectionInterval) clearInterval(faceDetectionInterval);
+            faceDetectionInterval = setInterval(() => {
+                if (!streamRef || videoElement.paused || videoElement.ended) return;
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = 60; tempCanvas.height = 65;
+                const ctx = tempCanvas.getContext('2d');
+                try {
+                    ctx.drawImage(videoElement, 15, 10, 30, 45, 0, 0, 60, 65);
+                    const imgData = ctx.getImageData(0, 0, 60, 65);
+                    let rSum=0, gSum=0, bSum=0, skinMatchPixels = 0;
+                    for (let i = 0; i < imgData.data.length; i += 4) {
+                        let r = imgData.data[i]; let g = imgData.data[i+1]; let b = imgData.data[i+2];
+                        rSum += r; gSum += g; bSum += b;
+                        if (r > 60 && g > 40 && b > 20 && r > g && r > b && (r - g) > 15) skinMatchPixels++;
                     }
-                    canvasResize.width = width;
-                    canvasResize.height = height;
-                    const ctx = canvasResize.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    localPhotoBase64 = canvasResize.toDataURL('image/jpeg', 0.6);
-                    imgPreviewElement.src = localPhotoBase64;
-                    imgPreviewElement.style.display = 'block';
+                    const totalPixels = imgData.data.length / 4;
+                    const skinRatio = skinMatchPixels / totalPixels;
+                    const avgR = rSum / totalPixels; const avgG = gSum / totalPixels; const avgB = bSum / totalPixels;
+                    const isHumanFaceDetected = (skinRatio > 0.25 && skinRatio < 0.85) && (avgR > avgB + 10) && (Math.abs(avgR - avgG) > 8);
+
+                    if (isHumanFaceDetected) {
+                        overlayElement.classList.add('detected');
+                        statusElement.innerText = "Üz aşkarlandı. Çəkə bilərsiniz.";
+                        statusElement.classList.add('detected');
+                        buttonElement.disabled = false;
+                    } else {
+                        overlayElement.classList.remove('detected');
+                        statusElement.innerText = "Üz tapılmadı! Şəkərbura çərçivəsinə yaxınlaşın.";
+                        statusElement.classList.remove('detected');
+                        buttonElement.disabled = true;
+                    }
+                } catch(e) {}
+            }, 300);
+        }
+
+        function setupCameraModule(toggleBtnId, blockId, videoId, overlayId, statusId, snapBtnId, retakeBtnId, previewId) {
+            const toggleBtn = document.getElementById(toggleBtnId);
+            const block = document.getElementById(blockId);
+            const videoEl = document.getElementById(videoId);
+            const overlayEl = document.getElementById(overlayId);
+            const statusEl = document.getElementById(statusId);
+            const snapBtn = document.getElementById(snapBtnId);
+            const retakeBtn = document.getElementById(retakeBtnId);
+            const preview = document.getElementById(previewId);
+
+            toggleBtn.addEventListener('click', async () => {
+                if (block.style.display === 'flex') {
+                    stopCamera(toggleBtnId.includes('reg') ? 'reg' : 'admin');
+                } else {
+                    block.style.display = 'flex';
+                    preview.style.display = 'none';
+                    videoEl.style.display = 'block';
+                    snapBtn.style.display = 'block';
+                    retakeBtn.style.display = 'none';
+                    try {
+                        streamRef = await navigator.mediaDevices.getUserMedia({ 
+                            video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false 
+                        });
+                        videoEl.srcObject = streamRef;
+                        startFaceDetectionSimulated(videoEl, overlayEl, statusEl, snapBtn);
+                    } catch (err) {
+                        alert("Kameraya giriş icazəsi rədd edildi!");
+                        block.style.display = 'none';
+                    }
                 }
-                img.src = e.target.result;
-            }
-            reader.readAsDataURL(file);
+            });
+
+            snapBtn.addEventListener('click', () => {
+                if (!streamRef || snapBtn.disabled) return;
+                if (faceDetectionInterval) clearInterval(faceDetectionInterval);
+                const canvasEl = document.createElement('canvas');
+                canvasEl.width = videoEl.videoWidth || 320; canvasEl.height = videoEl.videoHeight || 240;
+                const ctx = canvasEl.getContext('2d');
+                ctx.translate(canvasEl.width, 0); ctx.scale(-1, 1);
+                ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+                localPhotoBase64 = canvasEl.toDataURL('image/jpeg', 0.6);
+                preview.src = localPhotoBase64; preview.style.display = 'block';
+                videoEl.style.display = 'none'; snapBtn.style.display = 'none';
+                overlayEl.style.display = 'none'; retakeBtn.style.display = 'block';
+                statusEl.innerText = "Şəkil qeydə alındı.";
+            });
+
+            retakeBtn.addEventListener('click', () => {
+                localPhotoBase64 = ""; preview.style.display = 'none';
+                videoEl.style.display = 'block'; overlayEl.style.display = 'block';
+                snapBtn.style.display = 'block'; snapBtn.disabled = true; retakeBtn.style.display = 'none';
+                startFaceDetectionSimulated(videoEl, overlayEl, statusEl, snapBtn);
+            });
         }
 
-        document.getElementById('reg-file').addEventListener('change', (e) => handleFileSelection(e.target.files[0], document.getElementById('reg-preview')));
-        document.getElementById('admin-file').addEventListener('change', (e) => handleFileSelection(e.target.files[0], document.getElementById('captured-preview')));
+        setupCameraModule('camera-toggle-btn', 'cam-block', 'video', 'admin-shekerbura', 'admin-face-status', 'snap-btn', 'retake-btn', 'captured-preview');
+        setupCameraModule('reg-camera-toggle-btn', 'reg-cam-block', 'video-reg', 'reg-shekerbura', 'reg-face-status', 'reg-snap-btn', 'reg-retake-btn', 'reg-captured-preview');
 
-        // Biometric scanning imitation trigger
-        function runBiometricScan(snapBtnEl, statusEl) {
-            snapBtnEl.disabled = true;
-            snapBtnEl.innerText = "Skan edilir...";
-            statusEl.innerText = "Sima analiz olunur, gözləyin...";
-            statusEl.className = "biometric-status status-scanning";
-            
-            if (biometricTimeout) clearTimeout(biometricTimeout);
-            biometricTimeout = setTimeout(() => {
-                snapBtnEl.disabled = false;
-                snapBtnEl.innerText = "Şəkli Çək";
-                statusEl.innerText = "✓ İnsan üzü aşkarlandı. Hazırdır.";
-                statusEl.className = "biometric-status status-ready";
-            }, 1800);
-        }
-
-        // Camera Activation Mechanics
-        async function startCameraSystem(videoEl, blockEl, snapBtnEl, statusEl) {
-            blockEl.style.display = 'flex';
-            try {
-                // Request camera permission explicitly through standard api
-                streamRef = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-                videoEl.srcObject = streamRef;
-                runBiometricScan(snapBtnEl, statusEl);
-            } catch (err) {
-                alert("Kameraya icazə verilmədi və ya ön kamera tapılmadı! Zəhmət olmasa tətbiq tənzimləmələrindən icazəni aktiv edin.");
-                blockEl.style.display = 'none';
-            }
-        }
-
-        document.getElementById('reg-camera-btn').addEventListener('click', () => {
-            startCameraSystem(document.getElementById('video-reg'), document.getElementById('reg-cam-block'), document.getElementById('reg-snap-btn'), document.getElementById('reg-biometric-status'));
-        });
-
-        document.getElementById('camera-toggle-btn').addEventListener('click', () => {
-            startCameraSystem(document.getElementById('video'), document.getElementById('cam-block'), document.getElementById('snap-btn'), document.getElementById('admin-biometric-status'));
-        });
-
-        // Snap photo mechanics
-        function capturePhoto(videoEl, snapBtnEl, retakeBtnEl, previewEl) {
-            const canvasCapture = document.createElement('canvas');
-            canvasCapture.width = 120;
-            canvasCapture.height = 120;
-            const ctx = canvasCapture.getContext('2d');
-            ctx.translate(canvasCapture.width, 0);
-            ctx.scale(-1, 1);
-            ctx.drawImage(videoEl, 0, 0, canvasCapture.width, canvasCapture.height);
-            
-            localPhotoBase64 = canvasCapture.toDataURL('image/jpeg', 0.6);
-            previewEl.src = localPhotoBase64;
-            previewEl.style.display = 'block';
-            
-            videoEl.style.display = 'none';
-            snapBtnEl.style.display = 'none';
-            retakeBtnEl.style.display = 'block';
-        }
-
-        document.getElementById('reg-snap-btn').addEventListener('click', () => capturePhoto(document.getElementById('video-reg'), document.getElementById('reg-snap-btn'), document.getElementById('reg-retake-btn'), document.getElementById('reg-preview')));
-        document.getElementById('snap-btn').addEventListener('click', () => capturePhoto(document.getElementById('video'), document.getElementById('snap-btn'), document.getElementById('retake-btn'), document.getElementById('captured-preview')));
-
-        function resetCameraElements(videoEl, snapBtnEl, retakeBtnEl, previewEl) {
-            videoEl.style.display = 'block';
-            snapBtnEl.style.display = 'block';
-            retakeBtnEl.style.display = 'none';
-            previewEl.style.display = 'none';
+        function stopCamera(type) {
+            if (faceDetectionInterval) { clearInterval(faceDetectionInterval); faceDetectionInterval = null; }
+            if (streamRef) { streamRef.getTracks().forEach(track => track.stop()); streamRef = null; }
             localPhotoBase64 = "";
+            const block = document.getElementById(type === 'reg' ? 'reg-cam-block' : 'cam-block');
+            const videoEl = document.getElementById(type === 'reg' ? 'video-reg' : 'video');
+            const overlayEl = document.getElementById(type === 'reg' ? 'reg-shekerbura' : 'admin-shekerbura');
+            const snapBtn = document.getElementById(type === 'reg' ? 'reg-snap-btn' : 'snap-btn');
+            const retakeBtn = document.getElementById(type === 'reg' ? 'reg-retake-btn' : 'retake-btn');
+            const preview = document.getElementById(type === 'reg' ? 'reg-captured-preview' : 'captured-preview');
+            const statusEl = document.getElementById(type === 'reg' ? 'reg-face-status' : 'admin-face-status');
+            if(videoEl) videoEl.srcObject = null;
+            if (block) block.style.display = 'none';
+            if (videoEl) videoEl.style.display = 'block';
+            if (overlayEl) { overlayEl.style.display = 'block'; overlayEl.classList.remove('detected'); }
+            if (snapBtn) { snapBtn.style.display = 'block'; snapBtn.disabled = true; }
+            if (retakeBtn) retakeBtn.style.display = 'none';
+            if (preview) preview.style.display = 'none';
+            if (statusEl) { statusEl.innerText = "Üz çərçivəyə uyğunlaşdırılmalıdır"; statusEl.classList.remove('detected'); }
         }
 
-        document.getElementById('reg-retake-btn').addEventListener('click', () => {
-            resetCameraElements(document.getElementById('video-reg'), document.getElementById('reg-snap-btn'), document.getElementById('reg-retake-btn'), document.getElementById('reg-preview'));
-            runBiometricScan(document.getElementById('reg-snap-btn'), document.getElementById('reg-biometric-status'));
-        });
-
-        document.getElementById('retake-btn').addEventListener('click', () => {
-            resetCameraElements(document.getElementById('video'), document.getElementById('snap-btn'), document.getElementById('retake-btn'), document.getElementById('captured-preview'));
-            runBiometricScan(document.getElementById('snap-btn'), document.getElementById('admin-biometric-status'));
-        });
-
-        function stopCamera() {
-            if (streamRef) {
-                streamRef.getTracks().forEach(track => track.stop());
-                streamRef = null;
-            }
-            if (biometricTimeout) clearTimeout(biometricTimeout);
-            document.getElementById('video').srcObject = null;
-            document.getElementById('video-reg').srcObject = null;
-            document.getElementById('cam-block').style.display = 'none';
-            document.getElementById('reg-cam-block').style.display = 'none';
-            
-            resetCameraElements(document.getElementById('video-reg'), document.getElementById('reg-snap-btn'), document.getElementById('reg-retake-btn'), document.getElementById('reg-preview'));
-            resetCameraElements(document.getElementById('video'), document.getElementById('snap-btn'), document.getElementById('retake-btn'), document.getElementById('captured-preview'));
+        function handleFileSelection(inputElement, previewImgId) {
+            inputElement.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = function() {
+                        const canvasEl = document.createElement('canvas');
+                        const maxDim = 200; let w = img.width, h = img.height;
+                        if (w > h) { if (w > maxDim) { h *= maxDim/w; w = maxDim; } }
+                        else { if (h > maxDim) { w *= maxDim/h; h = maxDim; } }
+                        canvasEl.width = w; canvasEl.height = h;
+                        canvasEl.getContext('2d').drawImage(img, 0, 0, w, h);
+                        localPhotoBase64 = canvasEl.toDataURL('image/jpeg', 0.6);
+                        const prev = document.getElementById(previewImgId);
+                        prev.src = localPhotoBase64; prev.style.display = 'block';
+                    };
+                };
+                reader.readAsDataURL(file);
+            });
         }
+        handleFileSelection(document.getElementById('admin-file-input'), 'captured-preview');
+        handleFileSelection(document.getElementById('reg-file-input'), 'reg-captured-preview');
 
-        // Handle Registration Submit
         document.getElementById('submit-register-btn').addEventListener('click', () => {
             const name = document.getElementById('reg-name').value.trim();
             const pass = document.getElementById('reg-pass').value.trim();
             if (!name || !pass || !localPhotoBase64) {
-                alert("Qeydiyyat xətası: Ad, şifrə və profil şəkli (selfi və ya fayl) yüklənməsi mütləqdir!");
-                return;
+                alert("Ad, şifrə və şəkil mütləqdir!"); return;
             }
-
             db.ref('players/' + name).set({
-                name: name,
-                password: pass,
-                photo: localPhotoBase64,
-                status: "active",
-                role: "Boşdur"
+                name: name, password: pass, photo: localPhotoBase64, status: "active", role: "Boşdur"
             }).then(() => {
-                alert("Qeydiyyat uğurla tamamlandı! İndi daxil ola bilərsiniz.");
-                document.getElementById('reg-name').value = "";
-                document.getElementById('reg-pass').value = "";
-                regPanel.style.display = 'none';
-                stopCamera();
+                alert("Qeydiyyat tamamlandı!");
+                document.getElementById('reg-name').value = ""; document.getElementById('reg-pass').value = "";
+                document.getElementById('register-panel').style.display = 'none'; stopCamera('reg');
             });
         });
 
-        // Handle Admin Add Submit
         document.getElementById('add-player-btn').addEventListener('click', () => {
             const name = document.getElementById('p-name').value.trim();
             const pass = document.getElementById('p-pass').value.trim();
-            if (!name || !pass || !localPhotoBase64) { alert("Ad, şifrə və şəkil mütləqdir!"); return; }
-
+            if (!name || !pass) { alert("Ad və şifrə mütləqdir!"); return; }
+            const finalPhoto = localPhotoBase64 || "https://via.placeholder.com/150";
             db.ref('players/' + name).set({
-                name: name,
-                password: pass,
-                photo: localPhotoBase64,
-                status: "active",
-                role: "Boşdur"
+                name: name, password: pass, photo: finalPhoto, status: "active", role: "Boşdur"
             }).then(() => {
-                document.getElementById('p-name').value = "";
-                document.getElementById('p-pass').value = "";
-                stopCamera();
+                document.getElementById('p-name').value = ""; document.getElementById('p-pass').value = "";
+                stopCamera('admin');
             });
         });
 
-        // --- 4. ADMIN SECTIONS & DATA SYNC ---
         document.getElementById('add-custom-role-btn').addEventListener('click', () => {
             const rName = document.getElementById('new-role-name').value.trim();
             if (!rName) return;
-            db.ref('roles_config/' + rName).set(1).then(() => {
-                document.getElementById('new-role-name').value = "";
-            });
+            db.ref('roles_config/' + rName).set(1).then(() => { document.getElementById('new-role-name').value = ""; });
         });
 
         db.ref('players').on('value', snap => {
             const players = snap.val() || {};
             const activeDiv = document.getElementById('active-players-list');
             const archiveDiv = document.getElementById('archive-players-list');
-            activeDiv.innerHTML = "";
-            archiveDiv.innerHTML = "";
-
+            activeDiv.innerHTML = ""; archiveDiv.innerHTML = "";
             let activeCount = 0;
 
             Object.keys(players).forEach(key => {
                 const p = players[key];
-                
-                // PROBLEM 2 RESOLUTION: Handle broken/incomplete database elements safely
-                const pName = p.name || key || "Naməlum Oyunçu";
-                const pPhoto = p.photo || "https://via.placeholder.com/150";
-                const pRole = p.role || "Boşdur";
-                const pStatus = p.status || "active";
-
-                if (pStatus === "active") {
+                const isCorrupted = !p || !p.name || p.name === "undefined" || !p.photo;
+                if (p.status === "active" && !isCorrupted) {
                     activeCount++;
                     const item = document.createElement('div');
                     item.className = 'player-item';
                     item.innerHTML = `
-                        <div class="player-info">
-                            <img src="${pPhoto}" alt="p">
-                            <div><strong>${pName}</strong> <br><small style="color:#aaa;">Rol: ${pRole}</small></div>
-                        </div>
-                        <button class="btn-mini" data-id="${key}">Sil</button>
+                        <div class="player-info"><img src="${p.photo}" alt="p"><div><strong>${p.name}</strong> <br><small style="color:#aaa;">Rol: ${p.role || 'Boşdur'}</small></div></div>
+                        <button class="btn-mini" data-id="${p.name}">Sil</button>
                     `;
-                    item.querySelector('.btn-mini').addEventListener('click', () => {
-                        // Completely delete if broken, otherwise archive
-                        if (!p.name || !p.photo) {
-                            db.ref('players/' + key).remove();
-                        } else {
-                            db.ref('players/' + key).update({ status: "archived" });
-                        }
-                    });
+                    item.querySelector('.btn-mini').addEventListener('click', () => { db.ref('players/' + p.name).update({ status: "archived" }); });
                     activeDiv.appendChild(item);
-                } else {
+                } else if (p.status === "archived" && !isCorrupted) {
                     const item = document.createElement('div');
                     item.className = 'archive-item';
                     item.innerHTML = `
-                        <div class="player-info">
-                            <img src="${pPhoto}" alt="p">
-                            <span>${pName}</span>
-                        </div>
-                        <button class="btn-mini restore" data-id="${key}">Bərpa</button>
+                        <div class="player-info"><img src="${p.photo}" alt="p"><span>${p.name}</span></div>
+                        <button class="btn-mini restore" data-id="${p.name}">Bərpa</button>
                     `;
-                    item.querySelector('.btn-mini.restore').addEventListener('click', () => {
-                        db.ref('players/' + key).update({ status: "active" });
-                    });
+                    item.querySelector('.btn-mini.restore').addEventListener('click', () => { db.ref('players/' + p.name).update({ status: "active" }); });
                     archiveDiv.appendChild(item);
+                } else {
+                    const item = document.createElement('div');
+                    item.className = 'player-item'; item.style.border = "1px dashed #ff3333";
+                    item.innerHTML = `
+                        <span style="color:#ff8888; font-size:11px;">[Xarab Köhnə Data: ${key}]</span>
+                        <button class="btn-mini" style="background:#ff3333;">Kökündən Sil</button>
+                    `;
+                    item.querySelector('button').addEventListener('click', () => { db.ref('players/' + key).remove(); });
+                    activeDiv.appendChild(item);
                 }
             });
-
-            db.ref('game_status/distributed').once('value', dSnap => {
-                updateMainTriggerButtonState(activeCount, !!dSnap.val());
-            });
+            updateMainTriggerButtonState(activeCount);
         });
 
         db.ref('roles_config').on('value', snap => {
             const roles = snap.val() || {};
             if (Object.keys(roles).length === 0) {
-                db.ref('roles_config').set({ "Mafia": 1, "Don": 1, "Həkim": 1, "Komissar": 1, "Sivil": 3 });
-                return;
+                db.ref('roles_config').set({ "Mafia": 1, "Don": 1, "Həkim": 1, "Komissar": 1, "Sivil": 2 }); return;
             }
-            const configDiv = document.getElementById('roles-config-list');
-            configDiv.innerHTML = "";
-
+            const configDiv = document.getElementById('roles-config-list'); configDiv.innerHTML = "";
             Object.keys(roles).forEach(rName => {
-                const count = roles[rName];
-                const item = document.createElement('div');
-                item.className = 'role-item';
+                const count = roles[rName]; const item = document.createElement('div'); item.className = 'role-item';
                 item.innerHTML = `
                     <span>${rName}</span>
                     <div class="role-controls">
-                        <button class="btn-minus">-</button>
-                        <span style="min-width:20px; text-align:center; font-weight:bold;">${count}</span>
-                        <button class="btn-plus">+</button>
-                        <button class="btn-mini" style="margin-left:10px; background:#7f8c8d;" data-del="1">X</button>
+                        <button class="btn-minus">-</button><span style="min-width:20px; text-align:center; font-weight:bold;">${count}</span><button class="btn-plus">+</button>
+                        <button class="btn-mini" style="margin-left:10px; background:#7f8c8d;">X</button>
                     </div>
                 `;
-                item.querySelector('.btn-minus').addEventListener('click', () => {
-                    if (count > 0) db.ref('roles_config/' + rName).set(count - 1);
-                });
-                item.querySelector('.btn-plus').addEventListener('click', () => {
-                    db.ref('roles_config/' + rName).set(count + 1);
-                });
-                item.querySelector('[data-del]').addEventListener('click', () => {
-                    db.ref('roles_config/' + rName).remove();
-                });
+                item.querySelector('.btn-minus').addEventListener('click', () => { if (count > 0) db.ref('roles_config/' + rName).set(count - 1); });
+                item.querySelector('.btn-plus').addEventListener('click', () => { db.ref('roles_config/' + rName).set(count + 1); });
+                item.querySelector('.btn-mini').addEventListener('click', () => { db.ref('roles_config/' + rName).remove(); });
                 configDiv.appendChild(item);
             });
         });
 
-
-        // --- 5. PAGE D: DISTRIBUTE MECHANICS & GAME SYNC ---
-        let globalDistributedState = false;
+        let isGameDistributed = false;
         db.ref('game_status/distributed').on('value', snap => {
-            globalDistributedState = !!snap.val();
+            isGameDistributed = !!snap.val();
             db.ref('players').once('value', pSnap => {
-                let actCount = 0;
-                const pData = pSnap.val() || {};
-                Object.values(pData).forEach(x => { if((x.status || 'active') === 'active') actCount++; });
-                updateMainTriggerButtonState(actCount, globalDistributedState);
+                let actCount = 0; const pData = pSnap.val() || {};
+                Object.values(pData).forEach(x => { if(x && x.status === 'active' && x.name && x.photo) actCount++; });
+                updateMainTriggerButtonState(actCount);
             });
         });
 
-        function updateMainTriggerButtonState(activeCount, isDistributed) {
-            const btn = document.getElementById('main-distribute-btn');
-            if (activeCount < 5) {
-                btn.disabled = true;
-                btn.innerText = `Oyunçu azdır (${activeCount}/5)`;
-            } else if (isDistributed) {
-                btn.disabled = true;
-                btn.innerText = "Vəzifələr Paylanıb (Kilidli)";
-            } else {
-                btn.disabled = false;
-                btn.innerText = "VƏZİFƏLƏRİ TƏYİN ET";
-            }
+        function updateMainTriggerButtonState(activeCount) {
+            const btn = document.getElementById('main-distribute-btn'); if (!btn) return;
+            if (activeCount < 5) { btn.disabled = true; btn.innerText = `Oyunçu azdır (${activeCount}/5)`; }
+            else if (isGameDistributed) { btn.disabled = true; btn.innerText = "Vəzifələr Paylanıb (Kilidli)"; }
+            else { btn.disabled = false; btn.innerText = "VƏZİFƏLƏRİ TƏYİN ET"; }
         }
 
         const modal = document.getElementById('confirm-modal');
         document.getElementById('new-game-btn').addEventListener('click', () => { modal.style.display = 'flex'; });
         document.getElementById('modal-no').addEventListener('click', () => { modal.style.display = 'none'; });
         document.getElementById('modal-yes').addEventListener('click', () => {
-            modal.style.display = 'none';
-            db.ref('game_status/distributed').set(false);
-            db.ref('chat').remove();
+            modal.style.display = 'none'; db.ref('game_status/distributed').set(false); db.ref('chat').remove();
             db.ref('players').once('value', snap => {
-                const players = snap.val() || {};
-                const updates = {};
-                Object.keys(players).forEach(k => {
-                    updates['players/' + k + '/role'] = "Boşdur";
-                });
+                const players = snap.val() || {}; const updates = {};
+                Object.keys(players).forEach(k => { updates['players/' + k + '/role'] = "Boşdur"; });
                 db.ref().update(updates);
             });
         });
 
         document.getElementById('main-distribute-btn').addEventListener('click', () => {
-            if (globalDistributedState) return;
+            if (isGameDistributed) return;
             db.ref('game_status/countdown_trigger').set(firebase.database.ServerValue.TIMESTAMP);
         });
 
         db.ref('game_status/countdown_trigger').on('value', snap => {
             if (!snap.val()) return;
-            
             const overlay = document.getElementById('global-countdown-overlay');
             const numEl = document.getElementById('global-countdown-num');
             const banner = document.getElementById('global-start-banner');
-            
-            overlay.style.display = 'flex';
-            let count = 5;
-            numEl.innerText = count;
-
+            overlay.style.display = 'flex'; let count = 5; numEl.innerText = count;
             const interval = setInterval(() => {
                 count--;
-                if (count > 0) {
-                    numEl.innerText = count;
-                } else {
-                    clearInterval(interval);
-                    overlay.style.display = 'none';
-                    banner.style.display = 'block';
+                if (count > 0) { numEl.innerText = count; }
+                else {
+                    clearInterval(interval); overlay.style.display = 'none'; banner.style.display = 'block';
                     setTimeout(() => { banner.style.display = 'none'; }, 2000);
-
-                    if (currentUsername === "Admin" || pages.D.classList.contains('active')) {
-                        executeRoleDistribution();
-                    }
+                    if (currentUsername === "Admin" || pages.D.classList.contains('active')) { executeRoleDistribution(); }
                 }
             }, 1000);
         });
 
         function executeRoleDistribution() {
             db.ref('roles_config').once('value', rSnap => {
-                const rConfig = rSnap.val() || {};
-                let rolePool = [];
-                Object.keys(rConfig).forEach(rName => {
-                    for(let i=0; i<rConfig[rName]; i++) { rolePool.push(rName); }
-                });
-
+                const rConfig = rSnap.val() || {}; let rolePool = [];
+                Object.keys(rConfig).forEach(rName => { for(let i=0; i<rConfig[rName]; i++) rolePool.push(rName); });
                 db.ref('players').once('value', pSnap => {
                     const players = pSnap.val() || {};
-                    let activeKeys = Object.keys(players).filter(k => (players[k].status || 'active') === 'active');
-
+                    let activeKeys = Object.keys(players).filter(k => players[k].status === 'active' && players[k].name && players[k].photo);
                     for (let i = rolePool.length - 1; i > 0; i--) {
-                        const j = Math.floor(Math.random() * (i + 1));
-                        [rolePool[i], rolePool[j]] = [rolePool[j], rolePool[i]];
+                        const j = Math.floor(Math.random() * (i + 1)); [rolePool[i], rolePool[j]] = [rolePool[j], rolePool[i]];
                     }
-
                     const updates = {};
-                    activeKeys.forEach((pKey, index) => {
-                        const assignedRole = rolePool[index] || "Sivil";
-                        updates['players/' + pKey + '/role'] = assignedRole;
-                    });
-
-                    updates['game_status/distributed'] = true;
-                    updates['game_status/countdown_trigger'] = null;
+                    activeKeys.forEach((pKey, index) => { updates['players/' + pKey + '/role'] = rolePool[index] || "Sivil"; });
+                    updates['game_status/distributed'] = true; updates['game_status/countdown_trigger'] = null;
                     db.ref().update(updates);
                 });
             });
         }
 
-
-        // --- 6. PAGE C: CABINET & MESSAGE LOGISTICS ---
         const sidebarTrigger = document.getElementById('sidebar-trigger');
         const sidebarPanel = document.getElementById('sidebar-panel');
         let isPanelOpen = false;
 
         function togglePanel() {
             isPanelOpen = !isPanelOpen;
-            if (isPanelOpen) {
-                sidebarPanel.classList.add('open');
-                sidebarTrigger.innerText = "◀";
-                sidebarTrigger.style.left = "13mm";
-            } else {
-                sidebarPanel.classList.remove('open');
-                sidebarTrigger.innerText = "▶";
-                sidebarTrigger.style.left = "0";
-            }
+            if (isPanelOpen) { sidebarPanel.classList.add('open'); sidebarTrigger.innerText = "◀"; sidebarTrigger.style.left = "13mm"; }
+            else { sidebarPanel.classList.remove('open'); sidebarTrigger.innerText = "▶"; sidebarTrigger.style.left = "0"; }
         }
-
         sidebarTrigger.addEventListener('click', togglePanel);
 
         let touchStartX = 0;
         sidebarTrigger.addEventListener('touchstart', (e) => { touchStartX = e.touches.clientX; }, { passive: true });
         sidebarTrigger.addEventListener('touchend', (e) => {
-            let touchEndX = e.changedTouches.clientX;
-            let diffX = touchEndX - touchStartX;
-            if (!isPanelOpen && diffX > 30) togglePanel();
-            else if (isPanelOpen && diffX < -30) togglePanel();
+            let diffX = e.changedTouches.clientX - touchStartX;
+            if (!isPanelOpen && diffX > 30) togglePanel(); else if (isPanelOpen && diffX < -30) togglePanel();
         }, { passive: true });
 
         function listenToCabinetRole() {
             if (!currentUsername || currentUsername === "Admin") return;
-            db.ref('players/' + currentUsername + '/role').on('value', snap => {
-                const val = snap.val() || "Boşdur";
-                const verticalHTML = val.split('').join('<br>');
-                document.getElementById('cabinet-role-box').innerHTML = verticalHTML;
-            });
-        }
-
-        // Horizontal live syncing player list for messaging matrix
-        db.ref('players').on('value', snap => {
-            if (!currentUsername || currentUsername === "Admin") return;
-            const players = snap.val() || {};
-            const hzList = document.getElementById('hz-chat-list');
-            hzList.innerHTML = "";
-
-            // PROBLEM 4 BƏRPA: "Hamı" global control icon
-            const allCard = document.createElement('div');
-            allCard.className = `hz-player-card hz-all-card ${isAllSelected ? 'selected' : ''}`;
-            allCard.innerHTML = `
-                <div class="all-icon">ALL</div>
-                <span>Hamı</span>
-            `;
-            allCard.addEventListener('click', () => {
-                isAllSelected = true;
-                selectedTargets = [];
-                // Visual reset on other list entries
-                document.querySelectorAll('.hz-player-card').forEach(el => el.classList.remove('selected'));
-                allCard.classList.add('selected');
-            });
-            hzList.appendChild(allCard);
-
-            Object.keys(players).forEach(k => {
-                const p = players[k];
-                // PROBLEM 3.b RESOLUTION & Live Appending Verification
-                if (p.status === "active" && p.name && p.photo) {
-                    if (p.name === currentUsername) return; 
-
-                    const card = document.createElement('div');
-                    card.className = 'hz-player-card';
-                    if (!isAllSelected && selectedTargets.includes(p.name)) {
-                        card.classList.add('selected');
-                    }
-                    card.innerHTML = `
-                        <img src="${p.photo}" alt="p">
-                        <span>${p.name}</span>
-                    `;
-                    card.addEventListener('click', () => {
-                        isAllSelected = false;
-                        allCard.classList.remove('selected');
-                        
-                        if (selectedTargets.includes(p.name)) {
-                            selectedTargets = selectedTargets.filter(t => t !== p.name);
-                            card.classList.remove('selected');
-                            if (selectedTargets.length === 0) {
-                                isAllSelected = true;
-                                allCard.classList.add('selected');
+            db.ref('players').on('value', snap => {
+                const allPlayers = snap.val() || {}; const myData = allPlayers[currentUsername]; if (!myData) return;
+                const myRole = myData.role || "Boşdur";
+                document.getElementById('cabinet-role-box').innerHTML = myRole.split('').join('<br>');
+                const alliancePanel = document.getElementById('mafia-alliance-panel'); alliancePanel.innerHTML = "";
+                const isMafiaFaction = (myRole.toLowerCase() === "mafia" || myRole.toLowerCase() === "don");
+                
+                if (isMafiaFaction) {
+                    alliancePanel.style.display = "flex";
+                    Object.keys(allPlayers).forEach(k => {
+                        const p = allPlayers[k];
+                        if (p.status === "active" && p.name !== currentUsername) {
+                            const rLower = (p.role || "").toLowerCase();
+                            if (rLower === "mafia" || rLower === "don") {
+                                const row = document.createElement('div'); row.className = 'mafia-member-row';
+                                row.innerHTML = `<img src="${p.photo}" alt="m"><span>${p.name}</span>`;
+                                alliancePanel.appendChild(row);
                             }
-                        } else {
-                            selectedTargets.push(p.name);
-                            card.classList.add('selected');
                         }
                     });
-                    hzList.appendChild(card);
-                }
+                } else { alliancePanel.style.display = "none"; }
+
+                const hzList = document.getElementById('hz-chat-list'); hzList.innerHTML = "";
+                const allCard = document.createElement('div');
+                allCard.className = `hz-player-card ${isAllSelected ? 'all-selected' : ''}`;
+                allCard.innerHTML = `<div class="all-icon-wrapper">ALL</div><span>Hamı</span>`;
+                allCard.addEventListener('click', () => {
+                    isAllSelected = true; selectedTargets = [];
+                    document.querySelectorAll('.hz-player-card').forEach(c => c.classList.remove('selected'));
+                    allCard.classList.add('all-selected');
+                });
+                hzList.appendChild(allCard);
+
+                Object.keys(allPlayers).forEach(k => {
+                    const p = allPlayers[k];
+                    if (p.status === "active" && p.name && p.photo) {
+                        if (p.name === currentUsername) return;
+                        const card = document.createElement('div'); card.className = 'hz-player-card';
+                        if (selectedTargets.includes(p.name)) card.classList.add('selected');
+                        card.innerHTML = `<img src="${p.photo}" alt="p"><span>${p.name}</span>`;
+                        card.addEventListener('click', () => {
+                            isAllSelected = false; allCard.classList.remove('all-selected');
+                            if (selectedTargets.includes(p.name)) {
+                                selectedTargets = selectedTargets.filter(t => t !== p.name); card.classList.remove('selected');
+                                if (selectedTargets.length === 0) { isAllSelected = true; allCard.classList.add('all-selected'); }
+                            } else { selectedTargets.push(p.name); card.classList.add('selected'); }
+                        });
+                        hzList.appendChild(card);
+                    }
+                });
             });
-        });
+        }
 
         document.getElementById('chat-send-btn').addEventListener('click', sendMessage);
         document.getElementById('chat-input-field').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
         function sendMessage() {
-            const input = document.getElementById('chat-input-field');
-            const txt = input.value.trim();
-            if (!txt || !currentUsername) return;
-
+            const input = document.getElementById('chat-input-field'); const txt = input.value.trim(); if (!txt || !currentUsername) return;
             const msgData = {
-                sender: currentUsername,
-                text: txt,
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                targets: isAllSelected ? "all" : selectedTargets
+                sender: currentUsername, text: txt, timestamp: firebase.database.ServerValue.TIMESTAMP,
+                targets: selectedTargets.length > 0 ? selectedTargets : "all"
             };
-
-            db.ref('chat').push(msgData).then(() => {
-                input.value = "";
-            });
+            db.ref('chat').push(msgData).then(() => { input.value = ""; });
         }
 
         db.ref('chat').on('value', snap => {
             if (!currentUsername || currentUsername === "Admin") return;
-            const chatBox = document.getElementById('chat-messages-container');
-            chatBox.innerHTML = "";
+            const chatBox = document.getElementById('chat-messages-container'); chatBox.innerHTML = "";
             const messages = snap.val() || {};
-
             Object.keys(messages).forEach(mKey => {
-                const m = messages[mKey];
-                
-                const isAll = m.targets === "all";
-                const isSender = m.sender === currentUsername;
+                const m = messages[mKey]; const isAll = m.targets === "all"; const isSender = m.sender === currentUsername;
                 const isTarget = Array.isArray(m.targets) && m.targets.includes(currentUsername);
-
                 if (isAll || isSender || isTarget) {
-                    const div = document.createElement('div');
-                    div.className = `msg ${isSender ? 'outgoing' : 'incoming'}`;
-                    
-                    let targetLabel = "";
-                    if (Array.isArray(m.targets)) {
-                        targetLabel = `<span class="msg-target">🔒 Özəl: ${m.targets.join(', ')}</span>`;
-                    }
-
+                    const div = document.createElement('div'); div.className = `msg ${isSender ? 'outgoing' : 'incoming'}`;
+                    let targetLabel = ""; if (Array.isArray(m.targets)) { targetLabel = `<span class="msg-target">🔒 Özəl: ${m.targets.join(', ')}</span>`; }
                     const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "";
-
-                    div.innerHTML = `
-                        <span class="msg-meta">${m.sender}</span>
-                        <div>${m.text}</div>
-                        ${targetLabel}
-                        <span class="msg-time">${timeStr}</span>
-                    `;
+                    div.innerHTML = `<span class="msg-meta">${m.sender}</span><div>${m.text}</div>${targetLabel}<span class="msg-time">${timeStr}</span>`;
                     chatBox.appendChild(div);
                 }
             });
             chatBox.scrollTop = chatBox.scrollHeight;
         });
-
     </script>
 </body>
 </html>
