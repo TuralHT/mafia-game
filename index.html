@@ -489,7 +489,7 @@
             filter: blur(0);
         }
 
-        /* Mafia zoom styles - no background, transparent */
+        /* Mafia zoom overlay - 4x larger, transparent background */
         .mafia-zoom-overlay {
             position: fixed;
             top: 0;
@@ -509,15 +509,15 @@
             flex-wrap: wrap;
             justify-content: center;
             align-items: center;
-            gap: 20px;
-            padding: 20px;
+            gap: 30px;
+            padding: 30px;
             background: transparent !important;
         }
         .mafia-zoom-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             background: transparent !important;
             transform: scale(4);
             transform-origin: center;
@@ -530,13 +530,13 @@
             object-fit: cover;
             border: 2px solid #ff333388;
             background: transparent !important;
-            box-shadow: 0 0 20px rgba(255, 51, 51, 0.3);
+            box-shadow: 0 0 30px rgba(255, 51, 51, 0.4);
         }
         .mafia-zoom-item span {
-            color: #ff8888;
-            font-size: 12px;
+            color: #ff6666;
+            font-size: 14px;
             font-weight: bold;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            text-shadow: 0 0 15px rgba(0,0,0,0.9);
             background: transparent !important;
             text-align: center;
             white-space: nowrap;
@@ -840,11 +840,14 @@
                 font-size: 32px;
             }
             .mafia-zoom-item {
-                transform: scale(3);
+                transform: scale(3.5);
             }
             .mafia-zoom-item img {
                 width: 48px !important;
                 height: 48px !important;
+            }
+            .mafia-zoom-item span {
+                font-size: 12px;
             }
         }
     </style>
@@ -972,7 +975,7 @@
         </div>
     </div>
 
-    <!-- Mafia Zoom Overlay -->
+    <!-- Mafia Zoom Overlay - 4x larger -->
     <div id="mafia-zoom-overlay" class="mafia-zoom-overlay">
         <div id="mafia-zoom-container" class="mafia-zoom-container"></div>
     </div>
@@ -999,7 +1002,6 @@
         let streamRef = null;
         let faceDetectionInterval = null;
         let pendingDeleteKey = null;
-        let mafiaZoomTimer = null;
         let isMafiaZoomActive = false;
 
         const pages = {
@@ -1551,7 +1553,7 @@
             else if (isPanelOpen && diffX < -30) togglePanel();
         }, { passive: true });
 
-        // ===================== MAFIA ZOOM ON HOLD =====================
+        // ===================== MAFIA ZOOM ON HOLD (4x larger) =====================
         function showMafiaZoom(mafiaMembers) {
             const overlay = document.getElementById('mafia-zoom-overlay');
             const container = document.getElementById('mafia-zoom-container');
@@ -1582,47 +1584,6 @@
             isMafiaZoomActive = false;
         }
 
-        // Role text hold to zoom
-        const roleTextEl = document.getElementById('cabinet-role-box');
-
-        // Touch events for role text
-        roleTextEl.addEventListener('touchstart', (e) => {
-            const role = roleTextEl.innerText.replace(/<br>/g, '').trim();
-            if (role.toLowerCase() === 'mafia' || role.toLowerCase() === 'don') {
-                const mafiaMembers = getMafiaAllies();
-                if (mafiaMembers && mafiaMembers.length > 0) {
-                    showMafiaZoom(mafiaMembers);
-                }
-            }
-        }, { passive: true });
-
-        roleTextEl.addEventListener('touchend', () => {
-            hideMafiaZoom();
-        }, { passive: true });
-
-        roleTextEl.addEventListener('touchcancel', () => {
-            hideMafiaZoom();
-        }, { passive: true });
-
-        // Mouse events for role text (desktop testing)
-        roleTextEl.addEventListener('mousedown', () => {
-            const role = roleTextEl.innerText.replace(/<br>/g, '').trim();
-            if (role.toLowerCase() === 'mafia' || role.toLowerCase() === 'don') {
-                const mafiaMembers = getMafiaAllies();
-                if (mafiaMembers && mafiaMembers.length > 0) {
-                    showMafiaZoom(mafiaMembers);
-                }
-            }
-        });
-
-        roleTextEl.addEventListener('mouseup', () => {
-            hideMafiaZoom();
-        });
-
-        roleTextEl.addEventListener('mouseleave', () => {
-            hideMafiaZoom();
-        });
-
         function getMafiaAllies() {
             const alliancePanel = document.getElementById('mafia-alliance-panel');
             const rows = alliancePanel.querySelectorAll('.mafia-member-row');
@@ -1640,142 +1601,215 @@
             return members;
         }
 
-        // ===================== SENSITIVE WORD FILTER =====================
+        // Role text hold to zoom - improved with touch support
+        const roleTextEl = document.getElementById('cabinet-role-box');
+        let holdTimer = null;
+
+        function startMafiaZoom() {
+            const role = roleTextEl.innerText.replace(/<br>/g, '').trim();
+            if (role.toLowerCase() === 'mafia' || role.toLowerCase() === 'don') {
+                const mafiaMembers = getMafiaAllies();
+                if (mafiaMembers && mafiaMembers.length > 0) {
+                    showMafiaZoom(mafiaMembers);
+                }
+            }
+        }
+
+        function stopMafiaZoom() {
+            if (holdTimer) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+            }
+            hideMafiaZoom();
+        }
+
+        // Touch events for role text
+        roleTextEl.addEventListener('touchstart', (e) => {
+            holdTimer = setTimeout(startMafiaZoom, 150);
+        }, { passive: true });
+
+        roleTextEl.addEventListener('touchend', () => {
+            stopMafiaZoom();
+        }, { passive: true });
+
+        roleTextEl.addEventListener('touchcancel', () => {
+            stopMafiaZoom();
+        }, { passive: true });
+
+        // Mouse events for role text (desktop testing)
+        roleTextEl.addEventListener('mousedown', (e) => {
+            holdTimer = setTimeout(startMafiaZoom, 150);
+        });
+
+        roleTextEl.addEventListener('mouseup', () => {
+            stopMafiaZoom();
+        });
+
+        roleTextEl.addEventListener('mouseleave', () => {
+            stopMafiaZoom();
+        });
+
+        // ===================== ENHANCED SENSITIVE WORD FILTER =====================
+        // Comprehensive list of sensitive words in multiple languages
         const sensitiveWords = [
-            'sivil', 'həkim', 'kamekadze', 'komissar', 'vətəndaş', 'dedektiv',
-            'civil', 'doctor', 'kamikaze', 'commissioner', 'citizen', 'detective',
-            'mafia', 'don', 'mafiya', 'сивил', 'хəким', 'камикадзе', 'комиссар', 'детектив',
-            'мафия', 'дон'
+            // Azerbaijani
+            'sivil', 'həkim', 'həkin', 'kamekadze', 'kamekadzi', 'komissar', 'vətəndaş', 'dedektiv',
+            'mafiya', 'don', 'hakim', 'doktor', 'polis', 'müstəntiq', 'casus', 'qatil',
+            // English
+            'civil', 'doctor', 'kamikaze', 'commissioner', 'citizen', 'detective', 'mafia', 'don',
+            'police', 'investigator', 'spy', 'killer', 'sheriff', 'judge', 'lawyer',
+            // Russian
+            'сивил', 'хəким', 'камикадзе', 'комиссар', 'детектив', 'мафия', 'дон',
+            'доктор', 'полиция', 'следователь', 'шпион', 'убийца', 'шериф', 'судья',
+            // Turkish
+            'sivil', 'hekim', 'kamikaze', 'komiser', 'vatandaş', 'dedektif', 'mafya', 'don',
+            'doktor', 'polis', 'müfettiş', 'casus', 'katil', 'şerif', 'hakim',
+            // Common variations
+            'hekım', 'hekïm', 'hekîm', 'doktor', 'doxtor', 'kamisadze', 'kamisadzi',
+            'komisar', 'komissar', 'detektiv', 'detektif', 'mafia', 'mafiya', 'don',
+            'civıl', 'cıvıl', 'sıvıl', 'sivıl'
         ];
 
         // Generate all possible obfuscation patterns
-        function generateObfuscatedPatterns(word) {
+        function generateAllPatterns() {
             const patterns = new Set();
-            // Original word
-            patterns.add(word.toLowerCase());
+            const separators = ['', '_', '-', '.', '*', '#', '~', '+', '=', '!', '?', '&', '%', '$', '@', '|', '/', '\\', ' '];
 
-            // Replace vowels with common substitutions
+            // Character substitution maps
             const subs = {
-                'a': ['@', '4', 'а'],
-                'e': ['3', 'е'],
-                'i': ['1', '!', 'ı', 'і'],
-                'o': ['0', 'о'],
-                'u': ['ü', 'у'],
-                'ə': ['e', 'a'],
-                'ş': ['sh', 's'],
-                'ç': ['ch', 'c'],
-                'ğ': ['g'],
-                'ö': ['o', 'oe'],
-                'ü': ['u', 'ue']
+                'a': ['@', '4', 'а', 'α', 'Λ'],
+                'e': ['3', 'е', 'ε', 'ξ'],
+                'i': ['1', '!', 'ı', 'і', 'ι', '|'],
+                'o': ['0', 'о', 'σ', 'ø'],
+                'u': ['ü', 'у', 'υ', 'µ'],
+                'ə': ['e', 'a', 'æ'],
+                'ş': ['sh', 's', 'ş', 'ṡ'],
+                'ç': ['ch', 'c', 'ç', 'ċ'],
+                'ğ': ['g', 'ğ', 'ġ'],
+                'ö': ['o', 'oe', 'ö'],
+                'ü': ['u', 'ue', 'ü'],
+                'd': ['đ', 'ḍ'],
+                't': ['7', 'ţ', 'ṭ'],
+                'k': ['k', 'κ', 'ķ'],
+                'm': ['m', 'μ'],
+                'n': ['n', 'η'],
+                'r': ['r', 'ρ'],
+                's': ['5', '$', 'ş', 'ṡ'],
+                'v': ['v', 'ν'],
+                'y': ['y', 'γ']
             };
 
-            // Add variations with separators
-            const separators = ['', '_', '-', '.', '*', '#', '~', '+', '='];
+            // Generate variations for a word
+            function generateVariations(word) {
+                const results = new Set();
+                const chars = word.toLowerCase().split('');
 
-            // Build variations
-            function generateVariations(str, index) {
-                if (index >= str.length) {
-                    patterns.add(str);
-                    return;
-                }
-                const char = str[index];
-                if (subs[char]) {
-                    for (const sub of subs[char]) {
-                        generateVariations(str.slice(0, index) + sub + str.slice(index + 1), index + 1);
+                // Original
+                results.add(word.toLowerCase());
+
+                // Character substitutions
+                function substituteChars(arr, index) {
+                    if (index >= arr.length) {
+                        results.add(arr.join(''));
+                        return;
                     }
+                    const char = arr[index];
+                    if (subs[char]) {
+                        for (const sub of subs[char]) {
+                            const newArr = [...arr];
+                            newArr[index] = sub;
+                            substituteChars(newArr, index + 1);
+                        }
+                    }
+                    substituteChars(arr, index + 1);
                 }
-                generateVariations(str, index + 1);
-            }
+                substituteChars([...chars], 0);
 
-            // Add variations with separators between characters
-            function addSeparatorVariations(str) {
+                // Add separators between characters
                 for (const sep of separators) {
-                    if (sep) {
-                        const chars = str.split('');
+                    if (sep !== '') {
+                        const withSep = chars.join(sep);
+                        results.add(withSep);
+                        // Multiple separators
                         for (let i = 1; i < chars.length; i++) {
-                            const withSep = chars.slice(0, i).join('') + sep + chars.slice(i).join('');
-                            patterns.add(withSep);
-                            // Also add with multiple separators
-                            for (let j = i + 2; j < chars.length; j += 2) {
-                                const multiSep = chars.slice(0, i).join('') + sep +
-                                    chars.slice(i, j).join('') + sep + chars.slice(j).join('');
-                                patterns.add(multiSep);
+                            const parts = [];
+                            for (let j = 0; j < chars.length; j++) {
+                                parts.push(chars[j]);
+                                if (j < chars.length - 1) {
+                                    parts.push(sep.repeat((j % 2) + 1));
+                                }
                             }
+                            results.add(parts.join(''));
                         }
                     }
                 }
-            }
 
-            generateVariations(word.toLowerCase(), 0);
-            addSeparatorVariations(word.toLowerCase());
+                // Leetspeak variations
+                const leetMap = {
+                    'a': ['4', '@', '∆'],
+                    'e': ['3', '£'],
+                    'i': ['1', '|', '!'],
+                    'o': ['0', '()'],
+                    's': ['5', '$'],
+                    't': ['7', '+'],
+                    'g': ['9', '6'],
+                    'b': ['8', 'ß'],
+                    'z': ['2'],
+                    'r': ['®']
+                };
 
-            // Add common leetspeak variations
-            const leetMap = {
-                'a': ['4', '@', 'а'],
-                'e': ['3', 'е'],
-                'i': ['1', '!', 'ı', 'і'],
-                'o': ['0', 'о'],
-                's': ['5', '$', 'ş'],
-                't': ['7', 'т'],
-                'b': ['8', 'ь'],
-                'g': ['9', 'ğ']
-            };
-
-            function generateLeet(str, idx) {
-                if (idx >= str.length) {
-                    patterns.add(str);
-                    return;
-                }
-                const char = str[idx];
-                if (leetMap[char]) {
-                    for (const sub of leetMap[char]) {
-                        generateLeet(str.slice(0, idx) + sub + str.slice(idx + 1), idx + 1);
+                function generateLeet(str, idx) {
+                    if (idx >= str.length) {
+                        results.add(str);
+                        return;
                     }
+                    const char = str[idx];
+                    if (leetMap[char]) {
+                        for (const sub of leetMap[char]) {
+                            generateLeet(str.slice(0, idx) + sub + str.slice(idx + 1), idx + 1);
+                        }
+                    }
+                    generateLeet(str, idx + 1);
                 }
-                generateLeet(str, idx + 1);
+                generateLeet(word.toLowerCase(), 0);
+
+                return Array.from(results);
             }
 
-            generateLeet(word.toLowerCase(), 0);
+            // Generate patterns for all sensitive words
+            sensitiveWords.forEach(word => {
+                const vars = generateVariations(word);
+                vars.forEach(v => patterns.add(v));
+            });
+
+            // Add common role words with extra obfuscation
+            const extraObfuscations = [
+                'h3k1m', 'd0kt0r', 'k4m1k4d3', 'c0m1ss4r', 'd3t3kt1v',
+                'm4f14', 'd0n', 'c1v1l', 'd0kt0r', 'p0l1c3'
+            ];
+            extraObfuscations.forEach(w => patterns.add(w));
 
             return Array.from(patterns);
         }
 
-        // Build full sensitive patterns list
-        let allSensitivePatterns = new Set();
-        sensitiveWords.forEach(word => {
-            const patterns = generateObfuscatedPatterns(word);
-            patterns.forEach(p => allSensitivePatterns.add(p));
-        });
-
-        // Also add patterns with common separators between each character
-        sensitiveWords.forEach(word => {
-            const chars = word.toLowerCase().split('');
-            const separators = ['', '_', '-', '.', '*', '#', '~', '+', '='];
-            for (const sep of separators) {
-                if (sep) {
-                    const withSep = chars.join(sep);
-                    allSensitivePatterns.add(withSep);
-                    // Double separators
-                    const doubleSep = chars.join(sep + sep);
-                    allSensitivePatterns.add(doubleSep);
-                }
-            }
-        });
+        const allSensitivePatterns = generateAllPatterns();
 
         function containsSensitiveWord(text) {
             const lowerText = text.toLowerCase();
-            // Check exact matches
+
+            // Check exact patterns
             for (const pattern of allSensitivePatterns) {
                 if (lowerText.includes(pattern)) {
                     return true;
                 }
             }
 
-            // Check for patterns with mixed separators
+            // Check for patterns with any combination of separators
             const cleanText = lowerText.replace(/[^a-z0-9]/g, '');
             for (const word of sensitiveWords) {
-                if (cleanText.includes(word.toLowerCase())) {
-                    // Check if original text had separators
+                const cleanWord = word.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (cleanText.includes(cleanWord)) {
+                    // Check if original had separators between characters
                     const regex = new RegExp(word.split('').join('[^a-z0-9]*'), 'i');
                     if (regex.test(lowerText)) {
                         return true;
