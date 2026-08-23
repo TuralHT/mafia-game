@@ -435,6 +435,10 @@
             letter-spacing: 0px;
             text-align: center;
             margin-bottom: 10px;
+            cursor: default;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
         .mafia-alliance-container {
             width: 100%;
@@ -455,6 +459,9 @@
             border-radius: 4px;
             overflow: hidden;
             touch-action: manipulation;
+            transition: all 0.15s ease;
+            transform-origin: center;
+            will-change: transform;
         }
         .mafia-member-row img {
             width: 14px;
@@ -462,6 +469,7 @@
             border-radius: 50%;
             object-fit: cover;
             flex-shrink: 0;
+            transition: all 0.15s ease;
         }
         .mafia-member-row span {
             font-size: 8px;
@@ -471,7 +479,7 @@
             text-overflow: ellipsis;
             text-align: left;
             font-weight: normal;
-            transition: filter 0.15s ease;
+            transition: all 0.15s ease;
             user-select: none;
         }
         .mafia-member-row span.blurred {
@@ -480,6 +488,60 @@
         .mafia-member-row span.revealed {
             filter: blur(0);
         }
+
+        /* Mafia zoom styles - no background, transparent */
+        .mafia-zoom-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background: transparent !important;
+        }
+        .mafia-zoom-container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: transparent !important;
+        }
+        .mafia-zoom-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            background: transparent !important;
+            transform: scale(4);
+            transform-origin: center;
+            transition: transform 0.15s ease;
+        }
+        .mafia-zoom-item img {
+            width: 56px !important;
+            height: 56px !important;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ff333388;
+            background: transparent !important;
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.3);
+        }
+        .mafia-zoom-item span {
+            color: #ff8888;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            background: transparent !important;
+            text-align: center;
+            white-space: nowrap;
+        }
+
         .horizontal-list {
             height: 75px;
             background: #17212b;
@@ -777,6 +839,13 @@
             .start-announcement {
                 font-size: 32px;
             }
+            .mafia-zoom-item {
+                transform: scale(3);
+            }
+            .mafia-zoom-item img {
+                width: 48px !important;
+                height: 48px !important;
+            }
         }
     </style>
 </head>
@@ -902,6 +971,12 @@
             </div>
         </div>
     </div>
+
+    <!-- Mafia Zoom Overlay -->
+    <div id="mafia-zoom-overlay" class="mafia-zoom-overlay">
+        <div id="mafia-zoom-container" class="mafia-zoom-container"></div>
+    </div>
+
     <script>
         function resetAppHeight() {
             const doc = document.documentElement;
@@ -924,6 +999,8 @@
         let streamRef = null;
         let faceDetectionInterval = null;
         let pendingDeleteKey = null;
+        let mafiaZoomTimer = null;
+        let isMafiaZoomActive = false;
 
         const pages = {
             A: document.getElementById('page-a'),
@@ -1356,26 +1433,24 @@
         }
 
         const modal = document.getElementById('confirm-modal');
-        document.getElementById('new-game-btn').addEventListener('click', () => { 
+        document.getElementById('new-game-btn').addEventListener('click', () => {
             document.getElementById('modal-message').textContent = "Əminsinizmi? Bütün rollar və çat sıfırlanacak.";
-            modal.style.display = 'flex'; 
+            modal.style.display = 'flex';
         });
-        document.getElementById('modal-no').addEventListener('click', () => { 
-            modal.style.display = 'none'; 
+        document.getElementById('modal-no').addEventListener('click', () => {
+            modal.style.display = 'none';
             pendingDeleteKey = null;
         });
         document.getElementById('modal-yes').addEventListener('click', () => {
             modal.style.display = 'none';
-            
-            // Check if it's a delete operation
+
             if (pendingDeleteKey) {
                 db.ref('players/' + pendingDeleteKey).remove().then(() => {
                     pendingDeleteKey = null;
                 });
                 return;
             }
-            
-            // New game operation
+
             db.ref('game_status/distributed').set(false);
             db.ref('chat').remove();
             db.ref('players').once('value', snap => {
@@ -1476,56 +1551,249 @@
             else if (isPanelOpen && diffX < -30) togglePanel();
         }, { passive: true });
 
-        // Hold to reveal logic for mafia members
-        document.addEventListener('touchstart', (e) => {
-            const target = e.target;
-            if (target.closest && target.closest('.mafia-member-row')) {
-                const row = target.closest('.mafia-member-row');
-                const nameSpan = row.querySelector('span');
-                if (nameSpan) {
-                    nameSpan.classList.remove('blurred');
-                    nameSpan.classList.add('revealed');
+        // ===================== MAFIA ZOOM ON HOLD =====================
+        function showMafiaZoom(mafiaMembers) {
+            const overlay = document.getElementById('mafia-zoom-overlay');
+            const container = document.getElementById('mafia-zoom-container');
+            container.innerHTML = '';
+
+            if (!mafiaMembers || mafiaMembers.length === 0) {
+                overlay.style.display = 'none';
+                return;
+            }
+
+            mafiaMembers.forEach(member => {
+                const item = document.createElement('div');
+                item.className = 'mafia-zoom-item';
+                item.innerHTML = `
+                            <img src="${member.photo}" alt="${member.name}">
+                            <span>${member.name}</span>
+                        `;
+                container.appendChild(item);
+            });
+
+            overlay.style.display = 'flex';
+            isMafiaZoomActive = true;
+        }
+
+        function hideMafiaZoom() {
+            document.getElementById('mafia-zoom-overlay').style.display = 'none';
+            document.getElementById('mafia-zoom-container').innerHTML = '';
+            isMafiaZoomActive = false;
+        }
+
+        // Role text hold to zoom
+        const roleTextEl = document.getElementById('cabinet-role-box');
+
+        // Touch events for role text
+        roleTextEl.addEventListener('touchstart', (e) => {
+            const role = roleTextEl.innerText.replace(/<br>/g, '').trim();
+            if (role.toLowerCase() === 'mafia' || role.toLowerCase() === 'don') {
+                const mafiaMembers = getMafiaAllies();
+                if (mafiaMembers && mafiaMembers.length > 0) {
+                    showMafiaZoom(mafiaMembers);
                 }
             }
         }, { passive: true });
 
-        document.addEventListener('touchend', (e) => {
-            const target = e.target;
-            if (target.closest && target.closest('.mafia-member-row')) {
-                const row = target.closest('.mafia-member-row');
-                const nameSpan = row.querySelector('span');
-                if (nameSpan) {
-                    nameSpan.classList.add('blurred');
-                    nameSpan.classList.remove('revealed');
-                }
-            }
+        roleTextEl.addEventListener('touchend', () => {
+            hideMafiaZoom();
         }, { passive: true });
 
-        // Also add mouse events for desktop testing
-        document.addEventListener('mousedown', (e) => {
-            const target = e.target;
-            if (target.closest && target.closest('.mafia-member-row')) {
-                const row = target.closest('.mafia-member-row');
-                const nameSpan = row.querySelector('span');
-                if (nameSpan) {
-                    nameSpan.classList.remove('blurred');
-                    nameSpan.classList.add('revealed');
+        roleTextEl.addEventListener('touchcancel', () => {
+            hideMafiaZoom();
+        }, { passive: true });
+
+        // Mouse events for role text (desktop testing)
+        roleTextEl.addEventListener('mousedown', () => {
+            const role = roleTextEl.innerText.replace(/<br>/g, '').trim();
+            if (role.toLowerCase() === 'mafia' || role.toLowerCase() === 'don') {
+                const mafiaMembers = getMafiaAllies();
+                if (mafiaMembers && mafiaMembers.length > 0) {
+                    showMafiaZoom(mafiaMembers);
                 }
             }
         });
 
-        document.addEventListener('mouseup', (e) => {
-            const target = e.target;
-            if (target.closest && target.closest('.mafia-member-row')) {
-                const row = target.closest('.mafia-member-row');
-                const nameSpan = row.querySelector('span');
-                if (nameSpan) {
-                    nameSpan.classList.add('blurred');
-                    nameSpan.classList.remove('revealed');
+        roleTextEl.addEventListener('mouseup', () => {
+            hideMafiaZoom();
+        });
+
+        roleTextEl.addEventListener('mouseleave', () => {
+            hideMafiaZoom();
+        });
+
+        function getMafiaAllies() {
+            const alliancePanel = document.getElementById('mafia-alliance-panel');
+            const rows = alliancePanel.querySelectorAll('.mafia-member-row');
+            const members = [];
+            rows.forEach(row => {
+                const img = row.querySelector('img');
+                const span = row.querySelector('span');
+                if (img && span) {
+                    members.push({
+                        photo: img.src,
+                        name: span.textContent
+                    });
+                }
+            });
+            return members;
+        }
+
+        // ===================== SENSITIVE WORD FILTER =====================
+        const sensitiveWords = [
+            'sivil', 'həkim', 'kamekadze', 'komissar', 'vətəndaş', 'dedektiv',
+            'civil', 'doctor', 'kamikaze', 'commissioner', 'citizen', 'detective',
+            'mafia', 'don', 'mafiya', 'сивил', 'хəким', 'камикадзе', 'комиссар', 'детектив',
+            'мафия', 'дон'
+        ];
+
+        // Generate all possible obfuscation patterns
+        function generateObfuscatedPatterns(word) {
+            const patterns = new Set();
+            // Original word
+            patterns.add(word.toLowerCase());
+
+            // Replace vowels with common substitutions
+            const subs = {
+                'a': ['@', '4', 'а'],
+                'e': ['3', 'е'],
+                'i': ['1', '!', 'ı', 'і'],
+                'o': ['0', 'о'],
+                'u': ['ü', 'у'],
+                'ə': ['e', 'a'],
+                'ş': ['sh', 's'],
+                'ç': ['ch', 'c'],
+                'ğ': ['g'],
+                'ö': ['o', 'oe'],
+                'ü': ['u', 'ue']
+            };
+
+            // Add variations with separators
+            const separators = ['', '_', '-', '.', '*', '#', '~', '+', '='];
+
+            // Build variations
+            function generateVariations(str, index) {
+                if (index >= str.length) {
+                    patterns.add(str);
+                    return;
+                }
+                const char = str[index];
+                if (subs[char]) {
+                    for (const sub of subs[char]) {
+                        generateVariations(str.slice(0, index) + sub + str.slice(index + 1), index + 1);
+                    }
+                }
+                generateVariations(str, index + 1);
+            }
+
+            // Add variations with separators between characters
+            function addSeparatorVariations(str) {
+                for (const sep of separators) {
+                    if (sep) {
+                        const chars = str.split('');
+                        for (let i = 1; i < chars.length; i++) {
+                            const withSep = chars.slice(0, i).join('') + sep + chars.slice(i).join('');
+                            patterns.add(withSep);
+                            // Also add with multiple separators
+                            for (let j = i + 2; j < chars.length; j += 2) {
+                                const multiSep = chars.slice(0, i).join('') + sep +
+                                    chars.slice(i, j).join('') + sep + chars.slice(j).join('');
+                                patterns.add(multiSep);
+                            }
+                        }
+                    }
+                }
+            }
+
+            generateVariations(word.toLowerCase(), 0);
+            addSeparatorVariations(word.toLowerCase());
+
+            // Add common leetspeak variations
+            const leetMap = {
+                'a': ['4', '@', 'а'],
+                'e': ['3', 'е'],
+                'i': ['1', '!', 'ı', 'і'],
+                'o': ['0', 'о'],
+                's': ['5', '$', 'ş'],
+                't': ['7', 'т'],
+                'b': ['8', 'ь'],
+                'g': ['9', 'ğ']
+            };
+
+            function generateLeet(str, idx) {
+                if (idx >= str.length) {
+                    patterns.add(str);
+                    return;
+                }
+                const char = str[idx];
+                if (leetMap[char]) {
+                    for (const sub of leetMap[char]) {
+                        generateLeet(str.slice(0, idx) + sub + str.slice(idx + 1), idx + 1);
+                    }
+                }
+                generateLeet(str, idx + 1);
+            }
+
+            generateLeet(word.toLowerCase(), 0);
+
+            return Array.from(patterns);
+        }
+
+        // Build full sensitive patterns list
+        let allSensitivePatterns = new Set();
+        sensitiveWords.forEach(word => {
+            const patterns = generateObfuscatedPatterns(word);
+            patterns.forEach(p => allSensitivePatterns.add(p));
+        });
+
+        // Also add patterns with common separators between each character
+        sensitiveWords.forEach(word => {
+            const chars = word.toLowerCase().split('');
+            const separators = ['', '_', '-', '.', '*', '#', '~', '+', '='];
+            for (const sep of separators) {
+                if (sep) {
+                    const withSep = chars.join(sep);
+                    allSensitivePatterns.add(withSep);
+                    // Double separators
+                    const doubleSep = chars.join(sep + sep);
+                    allSensitivePatterns.add(doubleSep);
                 }
             }
         });
 
+        function containsSensitiveWord(text) {
+            const lowerText = text.toLowerCase();
+            // Check exact matches
+            for (const pattern of allSensitivePatterns) {
+                if (lowerText.includes(pattern)) {
+                    return true;
+                }
+            }
+
+            // Check for patterns with mixed separators
+            const cleanText = lowerText.replace(/[^a-z0-9]/g, '');
+            for (const word of sensitiveWords) {
+                if (cleanText.includes(word.toLowerCase())) {
+                    // Check if original text had separators
+                    const regex = new RegExp(word.split('').join('[^a-z0-9]*'), 'i');
+                    if (regex.test(lowerText)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        function filterSensitiveMessage(text) {
+            if (containsSensitiveWord(text)) {
+                return '🔒 [Məxfi məlumat bloklandı]';
+            }
+            return text;
+        }
+
+        // ===================== CHAT FUNCTIONS =====================
         function loadChatHistoryAndListen() {
             if (!currentUsername || currentUsername === "Admin") return;
             const chatBox = document.getElementById('chat-messages-container');
@@ -1562,9 +1830,12 @@
                     const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit',
                         minute: '2-digit' }) : "";
 
+                    // Filter message text
+                    const displayText = filterSensitiveMessage(m.text);
+
                     div.innerHTML = `
                                 <span class="msg-meta">${m.sender}</span>
-                                <div>${m.text}</div>
+                                <div>${displayText}</div>
                                 ${targetLabel}
                                 <span class="msg-time">${timeStr}</span>
                             `;
@@ -1672,9 +1943,12 @@
             const txt = input.value.trim();
             if (!txt || !currentUsername) return;
 
+            // Filter sensitive content
+            const filteredText = filterSensitiveMessage(txt);
+
             const msgData = {
                 sender: currentUsername,
-                text: txt,
+                text: filteredText,
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
                 targets: selectedTargets.length > 0 ? selectedTargets : "all"
             };
@@ -1684,6 +1958,55 @@
                 resetAppHeight();
             });
         }
+
+        // ===================== Hold to reveal for mafia members =====================
+        document.addEventListener('touchstart', (e) => {
+            const target = e.target;
+            if (target.closest && target.closest('.mafia-member-row')) {
+                const row = target.closest('.mafia-member-row');
+                const nameSpan = row.querySelector('span');
+                if (nameSpan) {
+                    nameSpan.classList.remove('blurred');
+                    nameSpan.classList.add('revealed');
+                }
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            const target = e.target;
+            if (target.closest && target.closest('.mafia-member-row')) {
+                const row = target.closest('.mafia-member-row');
+                const nameSpan = row.querySelector('span');
+                if (nameSpan) {
+                    nameSpan.classList.add('blurred');
+                    nameSpan.classList.remove('revealed');
+                }
+            }
+        }, { passive: true });
+
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target;
+            if (target.closest && target.closest('.mafia-member-row')) {
+                const row = target.closest('.mafia-member-row');
+                const nameSpan = row.querySelector('span');
+                if (nameSpan) {
+                    nameSpan.classList.remove('blurred');
+                    nameSpan.classList.add('revealed');
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            const target = e.target;
+            if (target.closest && target.closest('.mafia-member-row')) {
+                const row = target.closest('.mafia-member-row');
+                const nameSpan = row.querySelector('span');
+                if (nameSpan) {
+                    nameSpan.classList.add('blurred');
+                    nameSpan.classList.remove('revealed');
+                }
+            }
+        });
     </script>
 </body>
 </html>
