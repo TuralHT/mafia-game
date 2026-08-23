@@ -4,115 +4,775 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mafia Premium Control</title>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js">
+    </script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        :root { --app-height: 100vh; }
-        body { 
-            background: #0a0a0a; 
-            color: #e0e0e0; 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        :root {
+            --app-height: 100vh;
+        }
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
             height: var(--app-height);
             min-height: -webkit-fill-available;
-            display: flex; 
-            flex-direction: column; 
-            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             position: fixed;
             width: 100vw;
         }
-        .page { display: none; width: 100vw; height: 100%; position: relative; }
-        .page.active { display: flex; flex-direction: column; }
-        #page-a { background: radial-gradient(circle, #1a1a1a 0%, #050505 100%); justify-content: center; align-items: center; }
-        .login-btn-top { position: absolute; top: 15px; left: 15px; background: #27ae60; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 14px; }
-        .login-box { background: rgba(20, 20, 20, 0.9); padding: 30px; border-radius: 8px; border: 1px solid #333; width: 90%; max-width: 360px; box-shadow: 0 10px 25px rgba(0,0,0,0.7); text-align: center; position: relative; }
-        .login-box h2 { margin-bottom: 20px; color: #ff3333; letter-spacing: 2px; }
-        .login-box input { width: 100%; padding: 12px; margin-bottom: 15px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; font-size: 16px; }
-        .login-box button { width: 100%; padding: 12px; background: #ff3333; border: none; color: white; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        .register-link { color: #5288c1; margin-top: 15px; display: inline-block; cursor: pointer; text-decoration: underline; font-size: 14px; }
-        .register-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: var(--app-height); background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 3000; overflow-y: auto; padding: 20px; }
-        .register-box { background: #141414; padding: 25px; border-radius: 8px; border: 1px solid #333; width: 100%; max-width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); text-align: center; max-height: 90vh; overflow-y: auto; }
-        .register-box h3 { color: #ff3333; margin-bottom: 15px; letter-spacing: 1px; }
-        .register-box input { width: 100%; padding: 10px; margin-bottom: 12px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; }
-        .file-input-label { display: block; padding: 10px; background: #34495e; color: white; border-radius: 4px; margin-bottom: 8px; cursor: pointer; font-size: 13px; font-weight: bold; }
-        .file-input-label input { display: none; }
-        #page-b { display: none; flex-direction: row; height: 100%; }
-        #page-b.active { display: flex; }
-        .admin-left, .admin-right { width: 50%; height: 100%; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        .admin-left { border-right: 1px solid #333; background: #111; }
-        .admin-right { background: #151515; }
-        .admin-section { background: #1e1e1e; padding: 15px; border-radius: 6px; border: 1px solid #2a2a2a; }
-        .admin-section h3 { margin-bottom: 10px; color: #ff3333; border-bottom: 1px solid #333; padding-bottom: 5px; font-size: 16px; }
-        .admin-form input { width: 100%; padding: 8px; margin-bottom: 8px; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 4px; }
-        .admin-form button, .btn-action { width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }
-        .btn-action.danger { background: #c0392b; }
-        .player-item, .archive-item, .role-item { display: flex; align-items: center; justify-content: space-between; background: #252525; padding: 8px; border-radius: 4px; margin-bottom: 5px; font-size: 14px; }
-        .player-item img, .archive-item img { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
-        .player-info { display: flex; align-items: center; }
-        .btn-mini { padding: 4px 8px; background: #c0392b; border: none; color: white; border-radius: 3px; cursor: pointer; font-size: 12px; }
-        .btn-mini.restore { background: #2980b9; }
-        .role-controls { display: flex; align-items: center; gap: 5px; }
-        .role-controls button { width: 25px; height: 25px; background: #444; border: none; color: white; font-weight: bold; border-radius: 3px; cursor: pointer; }
-        .camera-container { display: none; flex-direction: column; align-items: center; gap: 10px; background: #222; padding: 10px; border-radius: 6px; margin-top: 5px; position: relative; }
-        .video-wrapper { position: relative; width: 100%; max-width: 240px; aspect-ratio: 4/3; background: #000; border-radius: 4px; overflow: hidden; }
-        #video, #video-reg { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-        .shekerbura-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 130px; height: 180px; border: 3px dashed #ff3333; border-radius: 100px / 130px; pointer-events: none; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); box-sizing: border-box; transition: border-color 0.3s; }
-        .shekerbura-overlay.detected { border-color: #27ae60; border-style: solid; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3); }
-        .face-status-text { font-size: 11px; color: #ff3333; font-weight: bold; margin-top: 2px; text-align: center; }
-        .face-status-text.detected { color: #27ae60; }
-        .camera-btns { display: flex; gap: 10px; width: 100%; }
-        .camera-btns button { flex: 1; padding: 8px; font-size: 12px; }
-        .img-preview { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; display: none; margin: 5px auto; border: 1px solid #555; }
-        #page-c { background: #0e1621; height: 100%; overflow: hidden; display: none; position: relative; }
-        #page-c.active { display: flex; flex-direction: column; }
-        .player-header { height: 60px; background: #17212b; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; border-bottom: 1px solid #101921; flex-shrink: 0; }
-        .player-header h2 { font-size: 18px; color: #fff; }
-        .player-header img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #5288c1; object-fit: cover; }
-        .sidebar-trigger { position: absolute; left: 0; top: 35%; width: 15px; height: 60px; background: #24303f; border-radius: 0 8px 8px 0; border: 1px solid #313e4f; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #888; font-size: 12px; z-index: 99; touch-action: none; }
-        .sidebar-panel { position: absolute; left: -100px; top: 35%; width: 13mm; height: auto; min-height: 25mm; background: #17212b; border: 1px solid #ff3333; box-shadow: 5px 0 15px rgba(0,0,0,0.5); z-index: 98; border-radius: 0 6px 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 5px 0; transition: left 0.2s ease; overflow: hidden; }
-        .sidebar-panel.open { left: 0; }
-        .role-text-vertical { display: flex; flex-direction: column; align-items: center; justify-content: center; text-transform: uppercase; color: #ff3333; font-weight: bold; font-size: 10px; line-height: 1.1; letter-spacing: 0px; text-align: center; margin-bottom: 10px; }
-        .mafia-alliance-container { width: 100%; border-top: 1px dashed #ff3333; padding-top: 5px; display: none; flex-direction: column; align-items: center; gap: 5px; }
-        .mafia-member-row { display: flex; align-items: center; gap: 4px; width: 90%; background: rgba(255,51,51,0.1); padding: 3px; border-radius: 4px; overflow: hidden; }
-        .mafia-member-row img { width: 14px; height: 14px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-        .mafia-member-row span { font-size: 8px; color: #ff8888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; font-weight: normal; }
-        .horizontal-list { height: 75px; background: #17212b; display: flex; align-items: center; gap: 15px; padding: 0 15px; overflow-x: auto; border-bottom: 1px solid #101921; flex-shrink: 0; scrollbar-width: none; }
-        .horizontal-list::-webkit-scrollbar { display: none; }
-        .hz-player-card { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 50px; position: relative; }
-        .hz-player-card img { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid transparent; transition: border-color 0.2s; }
-        .hz-player-card.selected img { border-color: #ff3333; }
-        .hz-player-card span { font-size: 11px; color: #7f91a4; margin-top: 4px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 55px; }
-        .all-icon-wrapper { width: 45px; height: 45px; border-radius: 50%; background: #24303f; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #fff; border: 2px solid transparent; }
-        .hz-player-card.all-selected .all-icon-wrapper { border-color: #27ae60; background: #2b5278; }
-        .chat-area { flex: 1 1 auto; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); background-repeat: repeat; -webkit-overflow-scrolling: touch; }
-        .msg { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 14px; line-height: 1.4; position: relative; word-break: break-word; }
-        .msg.incoming { background: #182533; align-self: flex-start; color: #fff; border-bottom-left-radius: 2px; }
-        .msg.outgoing { background: #2b5278; align-self: flex-end; color: #fff; border-bottom-right-radius: 2px; }
-        .msg .msg-meta { font-size: 10px; color: #7f91a4; display: block; margin-bottom: 2px; font-weight: bold; }
-        .msg .msg-target { font-size: 9px; color: #ff8888; font-style: italic; display: block; margin-top: 3px; }
-        .msg .msg-time { font-size: 9px; color: #a1b2c4; text-align: right; display: block; margin-top: 2px; }
-        .chat-input-bar { height: 65px; background: #17212b; display: flex; align-items: center; padding: 0 15px; gap: 10px; border-top: 1px solid #101921; flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom); }
-        .chat-input-bar input { flex: 1; padding: 12px 15px; background: #24303f; border: none; color: white; border-radius: 20px; font-size: 15px; outline: none; }
-        .chat-input-bar button { width: 45px; height: 45px; background: #5288c1; border: none; color: white; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
-        #page-d { background: #0c0c0c; justify-content: center; align-items: center; }
-        .btn-back-a { position: absolute; top: 15px; left: 15px; background: #444; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; }
-        .btn-new-game { position: absolute; top: 15px; right: 15px; background: #7f8c8d; color: white; border: none; padding: 10px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; }
-        .main-trigger-btn { width: 180px; height: 180px; border-radius: 50%; background: #c0392b; border: 8px solid #962d22; color: white; font-weight: bold; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: 0 0 30px rgba(192,57,43,0.5); transition: all 0.3s; user-select: none; }
-        .main-trigger-btn:disabled { background: #3a3a3a !important; border-color: #2b2b2b !important; color: #777 !important; cursor: not-allowed; box-shadow: none !important; }
-        .countdown-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.1); display: none; justify-content: center; align-items: center; z-index: 9999; pointer-events: none; }
-        .countdown-number { font-size: 140px; font-weight: 900; color: #ff3333; text-shadow: 0 0 40px rgba(255,51,51,0.8); font-family: Impact, sans-serif; }
-        .start-announcement { font-size: 45px; font-weight: bold; color: #27ae60; text-shadow: 0 0 30px rgba(39,174,96,0.8); text-align: center; display: none; font-family: 'Arial Black', sans-serif; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; width: 90%; pointer-events: none; }
-        .modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-box { background: #222; padding: 25px; border-radius: 6px; width: 280px; text-align: center; border: 1px solid #444; }
-        .modal-box p { margin-bottom: 20px; font-size: 16px; }
-        .modal-btns { display: flex; gap: 10px; }
-        .modal-btns button { flex: 1; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        .btn-yes { background: #c0392b; color: white; }
-        .btn-no { background: #7f8c8d; color: white; }
+        .page {
+            display: none;
+            width: 100vw;
+            height: 100%;
+            position: relative;
+        }
+        .page.active {
+            display: flex;
+            flex-direction: column;
+        }
+        #page-a {
+            background: radial-gradient(circle, #1a1a1a 0%, #050505 100%);
+            justify-content: center;
+            align-items: center;
+        }
+        .login-btn-top {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .login-box {
+            background: rgba(20, 20, 20, 0.9);
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+            text-align: center;
+            position: relative;
+        }
+        .login-box h2 {
+            margin-bottom: 20px;
+            color: #ff3333;
+            letter-spacing: 2px;
+        }
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: #ff3333;
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .register-link {
+            color: #5288c1;
+            margin-top: 15px;
+            display: inline-block;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 14px;
+        }
+        .register-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: var(--app-height);
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .register-box {
+            background: #141414;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+            text-align: center;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .register-box h3 {
+            color: #ff3333;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+        .register-box input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 12px;
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 4px;
+        }
+        .file-input-label {
+            display: block;
+            padding: 10px;
+            background: #34495e;
+            color: white;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .file-input-label input {
+            display: none;
+        }
+        #page-b {
+            display: none;
+            flex-direction: row;
+            height: 100%;
+        }
+        #page-b.active {
+            display: flex;
+        }
+        .admin-left,
+        .admin-right {
+            width: 50%;
+            height: 100%;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .admin-left {
+            border-right: 1px solid #333;
+            background: #111;
+        }
+        .admin-right {
+            background: #151515;
+        }
+        .admin-section {
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #2a2a2a;
+        }
+        .admin-section h3 {
+            margin-bottom: 10px;
+            color: #ff3333;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            font-size: 16px;
+        }
+        .admin-form input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 4px;
+        }
+        .admin-form button,
+        .btn-action {
+            width: 100%;
+            padding: 10px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        .btn-action.danger {
+            background: #c0392b;
+        }
+        .player-item,
+        .archive-item,
+        .role-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #252525;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .player-item img,
+        .archive-item img {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+        .player-info {
+            display: flex;
+            align-items: center;
+        }
+        .btn-mini {
+            padding: 4px 8px;
+            background: #c0392b;
+            border: none;
+            color: white;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-mini.restore {
+            background: #2980b9;
+        }
+        .role-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .role-controls button {
+            width: 25px;
+            height: 25px;
+            background: #444;
+            border: none;
+            color: white;
+            font-weight: bold;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .camera-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            background: #222;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 5px;
+            position: relative;
+        }
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 240px;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        #video,
+        #video-reg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+        .shekerbura-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 130px;
+            height: 180px;
+            border: 3px dashed #ff3333;
+            border-radius: 100px / 130px;
+            pointer-events: none;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        .shekerbura-overlay.detected {
+            border-color: #27ae60;
+            border-style: solid;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
+        }
+        .face-status-text {
+            font-size: 11px;
+            color: #ff3333;
+            font-weight: bold;
+            margin-top: 2px;
+            text-align: center;
+        }
+        .face-status-text.detected {
+            color: #27ae60;
+        }
+        .camera-btns {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        .camera-btns button {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+        }
+        .img-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: none;
+            margin: 5px auto;
+            border: 1px solid #555;
+        }
+        #page-c {
+            background: #0e1621;
+            height: 100%;
+            overflow: hidden;
+            display: none;
+            position: relative;
+        }
+        #page-c.active {
+            display: flex;
+            flex-direction: column;
+        }
+        .player-header {
+            height: 60px;
+            background: #17212b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            border-bottom: 1px solid #101921;
+            flex-shrink: 0;
+        }
+        .player-header h2 {
+            font-size: 18px;
+            color: #fff;
+        }
+        .player-header img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #5288c1;
+            object-fit: cover;
+        }
+        .sidebar-trigger {
+            position: absolute;
+            left: 0;
+            top: 35%;
+            width: 15px;
+            height: 60px;
+            background: #24303f;
+            border-radius: 0 8px 8px 0;
+            border: 1px solid #313e4f;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 12px;
+            z-index: 99;
+            touch-action: none;
+        }
+        .sidebar-panel {
+            position: absolute;
+            left: -100px;
+            top: 35%;
+            width: 13mm;
+            height: auto;
+            min-height: 25mm;
+            background: #17212b;
+            border: 1px solid #ff3333;
+            box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
+            z-index: 98;
+            border-radius: 0 6px 6px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 5px 0;
+            transition: left 0.2s ease;
+            overflow: hidden;
+        }
+        .sidebar-panel.open {
+            left: 0;
+        }
+        .role-text-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+            color: #ff3333;
+            font-weight: bold;
+            font-size: 10px;
+            line-height: 1.1;
+            letter-spacing: 0px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .mafia-alliance-container {
+            width: 100%;
+            border-top: 1px dashed #ff3333;
+            padding-top: 5px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .mafia-member-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            width: 90%;
+            background: rgba(255, 51, 51, 0.1);
+            padding: 3px;
+            border-radius: 4px;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .mafia-member-row img {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .mafia-member-row span {
+            font-size: 8px;
+            color: #ff8888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: left;
+            font-weight: normal;
+            transition: filter 0.15s ease;
+            user-select: none;
+        }
+        .mafia-member-row span.blurred {
+            filter: blur(4px);
+        }
+        .mafia-member-row span.revealed {
+            filter: blur(0);
+        }
+        .horizontal-list {
+            height: 75px;
+            background: #17212b;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 0 15px;
+            overflow-x: auto;
+            border-bottom: 1px solid #101921;
+            flex-shrink: 0;
+            scrollbar-width: none;
+        }
+        .horizontal-list::-webkit-scrollbar {
+            display: none;
+        }
+        .hz-player-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            min-width: 50px;
+            position: relative;
+        }
+        .hz-player-card img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .hz-player-card.selected img {
+            border-color: #ff3333;
+        }
+        .hz-player-card span {
+            font-size: 11px;
+            color: #7f91a4;
+            margin-top: 4px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            max-width: 55px;
+        }
+        .all-icon-wrapper {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #24303f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #fff;
+            border: 2px solid transparent;
+        }
+        .hz-player-card.all-selected .all-icon-wrapper {
+            border-color: #27ae60;
+            background: #2b5278;
+        }
+        .chat-area {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-repeat: repeat;
+            -webkit-overflow-scrolling: touch;
+        }
+        .msg {
+            max-width: 75%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.4;
+            position: relative;
+            word-break: break-word;
+        }
+        .msg.incoming {
+            background: #182533;
+            align-self: flex-start;
+            color: #fff;
+            border-bottom-left-radius: 2px;
+        }
+        .msg.outgoing {
+            background: #2b5278;
+            align-self: flex-end;
+            color: #fff;
+            border-bottom-right-radius: 2px;
+        }
+        .msg .msg-meta {
+            font-size: 10px;
+            color: #7f91a4;
+            display: block;
+            margin-bottom: 2px;
+            font-weight: bold;
+        }
+        .msg .msg-target {
+            font-size: 9px;
+            color: #ff8888;
+            font-style: italic;
+            display: block;
+            margin-top: 3px;
+        }
+        .msg .msg-time {
+            font-size: 9px;
+            color: #a1b2c4;
+            text-align: right;
+            display: block;
+            margin-top: 2px;
+        }
+        .chat-input-bar {
+            height: 65px;
+            background: #17212b;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            gap: 10px;
+            border-top: 1px solid #101921;
+            flex-shrink: 0;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .chat-input-bar input {
+            flex: 1;
+            padding: 12px 15px;
+            background: #24303f;
+            border: none;
+            color: white;
+            border-radius: 20px;
+            font-size: 15px;
+            outline: none;
+        }
+        .chat-input-bar button {
+            width: 45px;
+            height: 45px;
+            background: #5288c1;
+            border: none;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        #page-d {
+            background: #0c0c0c;
+            justify-content: center;
+            align-items: center;
+        }
+        .btn-back-a {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #444;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-new-game {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #7f8c8d;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .main-trigger-btn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: #c0392b;
+            border: 8px solid #962d22;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(192, 57, 43, 0.5);
+            transition: all 0.3s;
+            user-select: none;
+        }
+        .main-trigger-btn:disabled {
+            background: #3a3a3a !important;
+            border-color: #2b2b2b !important;
+            color: #777 !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+        }
+        .countdown-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.1);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        .countdown-number {
+            font-size: 140px;
+            font-weight: 900;
+            color: #ff3333;
+            text-shadow: 0 0 40px rgba(255, 51, 51, 0.8);
+            font-family: Impact, sans-serif;
+        }
+        .start-announcement {
+            font-size: 45px;
+            font-weight: bold;
+            color: #27ae60;
+            text-shadow: 0 0 30px rgba(39, 174, 96, 0.8);
+            text-align: center;
+            display: none;
+            font-family: 'Arial Black', sans-serif;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            width: 90%;
+            pointer-events: none;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal-box {
+            background: #222;
+            padding: 25px;
+            border-radius: 6px;
+            width: 280px;
+            text-align: center;
+            border: 1px solid #444;
+        }
+        .modal-box p {
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        .modal-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .modal-btns button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-yes {
+            background: #c0392b;
+            color: white;
+        }
+        .btn-no {
+            background: #7f8c8d;
+            color: white;
+        }
         @media (max-width: 600px) {
-            #page-b { flex-direction: column; }
-            .admin-left, .admin-right { width: 100%; height: 50%; }
-            .countdown-number { font-size: 100px; }
-            .start-announcement { font-size: 32px; }
+            #page-b {
+                flex-direction: column;
+            }
+            .admin-left,
+            .admin-right {
+                width: 100%;
+                height: 50%;
+            }
+            .countdown-number {
+                font-size: 100px;
+            }
+            .start-announcement {
+                font-size: 32px;
+            }
         }
     </style>
 </head>
@@ -254,9 +914,9 @@
         const db = firebase.database();
 
         let currentUsername = "";
-        let selectedTargets = []; 
-        let isAllSelected = true;  
-        let localPhotoBase64 = ""; 
+        let selectedTargets = [];
+        let isAllSelected = true;
+        let localPhotoBase64 = "";
         let streamRef = null;
         let faceDetectionInterval = null;
 
@@ -289,8 +949,9 @@
 
         document.getElementById('nav-to-d-btn').addEventListener('click', () => showPage('D'));
         document.getElementById('back-to-a-btn').addEventListener('click', () => showPage('A'));
-        document.getElementById('logout-b-btn').addEventListener('click', () => { currentUsername = ""; showPage('A'); });
-        
+        document.getElementById('logout-b-btn').addEventListener('click', () => { currentUsername = "";
+            showPage('A'); });
+
         document.getElementById('login-submit-btn').addEventListener('click', () => {
             const u = document.getElementById('login-username').value.trim();
             const p = document.getElementById('login-password').value.trim();
@@ -318,7 +979,7 @@
 
         function startFaceDetectionSimulated(videoElement, overlayElement, statusElement, buttonElement) {
             if (faceDetectionInterval) clearInterval(faceDetectionInterval);
-            
+
             faceDetectionInterval = setInterval(() => {
                 if (!streamRef || videoElement.paused || videoElement.ended) return;
 
@@ -329,26 +990,32 @@
                 try {
                     ctx.drawImage(videoElement, 15, 10, 30, 45, 0, 0, 60, 65);
                     const imgData = ctx.getImageData(0, 0, 60, 65);
-                    let rSum=0, gSum=0, bSum=0, skinMatchPixels = 0;
-                    
+                    let rSum = 0,
+                        gSum = 0,
+                        bSum = 0,
+                        skinMatchPixels = 0;
+
                     for (let i = 0; i < imgData.data.length; i += 4) {
                         let r = imgData.data[i];
-                        let g = imgData.data[i+1];
-                        let b = imgData.data[i+2];
-                        rSum += r; gSum += g; bSum += b;
-                        
+                        let g = imgData.data[i + 1];
+                        let b = imgData.data[i + 2];
+                        rSum += r;
+                        gSum += g;
+                        bSum += b;
+
                         if (r > 60 && g > 40 && b > 20 && r > g && r > b && (r - g) > 15) {
                             skinMatchPixels++;
                         }
                     }
-                    
+
                     const totalPixels = imgData.data.length / 4;
                     const skinRatio = skinMatchPixels / totalPixels;
                     const avgR = rSum / totalPixels;
                     const avgG = gSum / totalPixels;
                     const avgB = bSum / totalPixels;
-                    
-                    const isHumanFaceDetected = (skinRatio > 0.25 && skinRatio < 0.85) && (avgR > avgB + 10) && (Math.abs(avgR - avgG) > 8);
+
+                    const isHumanFaceDetected = (skinRatio > 0.25 && skinRatio < 0.85) && (avgR > avgB + 10) && (Math.abs(
+                    avgR - avgG) > 8);
 
                     if (isHumanFaceDetected) {
                         overlayElement.classList.add('detected');
@@ -361,7 +1028,7 @@
                         statusElement.classList.remove('detected');
                         buttonElement.disabled = true;
                     }
-                } catch(e) {}
+                } catch (e) {}
             }, 300);
         }
 
@@ -384,11 +1051,11 @@
                     videoEl.style.display = 'block';
                     snapBtn.style.display = 'block';
                     retakeBtn.style.display = 'none';
-                    
+
                     try {
-                        streamRef = await navigator.mediaDevices.getUserMedia({ 
-                            video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, 
-                            audio: false 
+                        streamRef = await navigator.mediaDevices.getUserMedia({
+                            video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+                            audio: false
                         });
                         videoEl.srcObject = streamRef;
                         startFaceDetectionSimulated(videoEl, overlayEl, statusEl, snapBtn);
@@ -407,15 +1074,15 @@
                 canvasEl.width = videoEl.videoWidth || 320;
                 canvasEl.height = videoEl.videoHeight || 240;
                 const ctx = canvasEl.getContext('2d');
-                
+
                 ctx.translate(canvasEl.width, 0);
                 ctx.scale(-1, 1);
                 ctx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-                
+
                 localPhotoBase64 = canvasEl.toDataURL('image/jpeg', 0.6);
                 preview.src = localPhotoBase64;
                 preview.style.display = 'block';
-                
+
                 videoEl.style.display = 'none';
                 snapBtn.style.display = 'none';
                 overlayEl.style.display = 'none';
@@ -435,17 +1102,20 @@
             });
         }
 
-        setupCameraModule('camera-toggle-btn', 'cam-block', 'video', 'admin-shekerbura', 'admin-face-status', 'snap-btn', 'retake-btn', 'captured-preview');
-        setupCameraModule('reg-camera-toggle-btn', 'reg-cam-block', 'video-reg', 'reg-shekerbura', 'reg-face-status', 'reg-snap-btn', 'reg-retake-btn', 'reg-captured-preview');
+        setupCameraModule('camera-toggle-btn', 'cam-block', 'video', 'admin-shekerbura', 'admin-face-status', 'snap-btn',
+            'retake-btn', 'captured-preview');
+        setupCameraModule('reg-camera-toggle-btn', 'reg-cam-block', 'video-reg', 'reg-shekerbura', 'reg-face-status',
+            'reg-snap-btn', 'reg-retake-btn', 'reg-captured-preview');
 
         function stopCamera(type) {
-            if (faceDetectionInterval) { clearInterval(faceDetectionInterval); faceDetectionInterval = null; }
+            if (faceDetectionInterval) { clearInterval(faceDetectionInterval);
+                faceDetectionInterval = null; }
             if (streamRef) {
                 streamRef.getTracks().forEach(track => track.stop());
                 streamRef = null;
             }
             localPhotoBase64 = "";
-            
+
             const block = document.getElementById(type === 'reg' ? 'reg-cam-block' : 'cam-block');
             const videoEl = document.getElementById(type === 'reg' ? 'video-reg' : 'video');
             const overlayEl = document.getElementById(type === 'reg' ? 'reg-shekerbura' : 'admin-shekerbura');
@@ -457,11 +1127,14 @@
             if (videoEl) videoEl.srcObject = null;
             if (block) block.style.display = 'none';
             if (videoEl) videoEl.style.display = 'block';
-            if (overlayEl) { overlayEl.style.display = 'block'; overlayEl.classList.remove('detected'); }
-            if (snapBtn) { snapBtn.style.display = 'block'; snapBtn.disabled = true; }
+            if (overlayEl) { overlayEl.style.display = 'block';
+                overlayEl.classList.remove('detected'); }
+            if (snapBtn) { snapBtn.style.display = 'block';
+                snapBtn.disabled = true; }
             if (retakeBtn) retakeBtn.style.display = 'none';
             if (preview) preview.style.display = 'none';
-            if (statusEl) { statusEl.innerText = "Üz çərçivəyə uyğunlaşdırılmalıdır"; statusEl.classList.remove('detected'); }
+            if (statusEl) { statusEl.innerText = "Üz çərçivəyə uyğunlaşdırılmalıdır";
+                statusEl.classList.remove('detected'); }
         }
 
         function handleFileSelection(inputElement, previewImgId) {
@@ -475,12 +1148,15 @@
                     img.onload = function() {
                         const canvasEl = document.createElement('canvas');
                         const maxDim = 200;
-                        let w = img.width, h = img.height;
-                        if (w > h) { if (w > maxDim) { h *= maxDim/w; w = maxDim; } }
-                        else { if (h > maxDim) { w *= maxDim/h; h = maxDim; } }
-                        canvasEl.width = w; canvasEl.height = h;
+                        let w = img.width,
+                            h = img.height;
+                        if (w > h) { if (w > maxDim) { h *= maxDim / w;
+                                w = maxDim; } } else { if (h > maxDim) { w *= maxDim / h;
+                                h = maxDim; } }
+                        canvasEl.width = w;
+                        canvasEl.height = h;
                         canvasEl.getContext('2d').drawImage(img, 0, 0, w, h);
-                        
+
                         localPhotoBase64 = canvasEl.toDataURL('image/jpeg', 0.6);
                         const prev = document.getElementById(previewImgId);
                         prev.src = localPhotoBase64;
@@ -496,7 +1172,7 @@
         document.getElementById('submit-register-btn').addEventListener('click', () => {
             const name = document.getElementById('reg-name').value.trim();
             const pass = document.getElementById('reg-pass').value.trim();
-            
+
             if (!name || !pass || !localPhotoBase64) {
                 alert("Qeydiyyat xətası! Ad, şifrə və şəkil mütləqdir.");
                 return;
@@ -563,12 +1239,12 @@
                     const item = document.createElement('div');
                     item.className = 'player-item';
                     item.innerHTML = `
-                        <div class="player-info">
-                            <img src="${p.photo}" alt="p">
-                            <div><strong>${p.name}</strong> <br><small style="color:#aaa;">Rol: ${p.role || 'Boşdur'}</small></div>
-                        </div>
-                        <button class="btn-mini" data-id="${p.name}">Sil</button>
-                    `;
+                                <div class="player-info">
+                                    <img src="${p.photo}" alt="p">
+                                    <div><strong>${p.name}</strong> <br><small style="color:#aaa;">Rol: ${p.role || 'Boşdur'}</small></div>
+                                </div>
+                                <button class="btn-mini" data-id="${p.name}">Sil</button>
+                            `;
                     item.querySelector('.btn-mini').addEventListener('click', () => {
                         db.ref('players/' + p.name).update({ status: "archived" });
                     });
@@ -577,12 +1253,12 @@
                     const item = document.createElement('div');
                     item.className = 'archive-item';
                     item.innerHTML = `
-                        <div class="player-info">
-                            <img src="${p.photo}" alt="p">
-                            <span>${p.name}</span>
-                        </div>
-                        <button class="btn-mini restore" data-id="${p.name}">Bərpa</button>
-                    `;
+                                <div class="player-info">
+                                    <img src="${p.photo}" alt="p">
+                                    <span>${p.name}</span>
+                                </div>
+                                <button class="btn-mini restore" data-id="${p.name}">Bərpa</button>
+                            `;
                     item.querySelector('.btn-mini.restore').addEventListener('click', () => {
                         db.ref('players/' + p.name).update({ status: "active" });
                     });
@@ -592,9 +1268,9 @@
                     item.className = 'player-item';
                     item.style.border = "1px dashed #ff3333";
                     item.innerHTML = `
-                        <span style="color:#ff8888; font-size:11px;">[Köhnə Data: ${key}]</span>
-                        <button class="btn-mini" style="background:#ff3333;">Sil</button>
-                    `;
+                                <span style="color:#ff8888; font-size:11px;">[Köhnə Data: ${key}]</span>
+                                <button class="btn-mini" style="background:#ff3333;">Sil</button>
+                            `;
                     item.querySelector('button').addEventListener('click', () => {
                         db.ref('players/' + key).remove();
                     });
@@ -619,14 +1295,14 @@
                 const item = document.createElement('div');
                 item.className = 'role-item';
                 item.innerHTML = `
-                    <span>${rName}</span>
-                    <div class="role-controls">
-                        <button class="btn-minus" data-id="${rName}">-</button>
-                        <span style="min-width:20px; text-align:center; font-weight:bold;">${count}</span>
-                        <button class="btn-plus" data-id="${rName}">+</button>
-                        <button class="btn-mini" style="margin-left:10px; background:#7f8c8d;" data-del="${rName}">X</button>
-                    </div>
-                `;
+                            <span>${rName}</span>
+                            <div class="role-controls">
+                                <button class="btn-minus" data-id="${rName}">-</button>
+                                <span style="min-width:20px; text-align:center; font-weight:bold;">${count}</span>
+                                <button class="btn-plus" data-id="${rName}">+</button>
+                                <button class="btn-mini" style="margin-left:10px; background:#7f8c8d;" data-del="${rName}">X</button>
+                            </div>
+                        `;
                 item.querySelector('.btn-minus').addEventListener('click', () => {
                     if (count > 0) db.ref('roles_config/' + rName).set(count - 1);
                 });
@@ -646,7 +1322,7 @@
             db.ref('players').once('value', pSnap => {
                 let actCount = 0;
                 const pData = pSnap.val() || {};
-                Object.values(pData).forEach(x => { if(x && x.status === 'active' && x.name && x.photo) actCount++; });
+                Object.values(pData).forEach(x => { if (x && x.status === 'active' && x.name && x.photo) actCount++; });
                 updateMainTriggerButtonState(actCount);
             });
         });
@@ -693,7 +1369,7 @@
             const overlay = document.getElementById('global-countdown-overlay');
             const numEl = document.getElementById('global-countdown-num');
             const banner = document.getElementById('global-start-banner');
-            
+
             overlay.style.display = 'flex';
             let count = 5;
             numEl.innerText = count;
@@ -720,12 +1396,13 @@
                 const rConfig = rSnap.val() || {};
                 let rolePool = [];
                 Object.keys(rConfig).forEach(rName => {
-                    for(let i=0; i<rConfig[rName]; i++) rolePool.push(rName);
+                    for (let i = 0; i < rConfig[rName]; i++) rolePool.push(rName);
                 });
 
                 db.ref('players').once('value', pSnap => {
                     const players = pSnap.val() || {};
-                    let activeKeys = Object.keys(players).filter(k => players[k].status === 'active' && players[k].name && players[k].photo);
+                    let activeKeys = Object.keys(players).filter(k => players[k].status === 'active' && players[k]
+                        .name && players[k].photo);
 
                     for (let i = rolePool.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
@@ -763,12 +1440,62 @@
         sidebarTrigger.addEventListener('click', togglePanel);
 
         let touchStartX = 0;
-        sidebarTrigger.addEventListener('touchstart', (e) => { touchStartX = e.touches.clientX; }, { passive: true });
+        sidebarTrigger.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
         sidebarTrigger.addEventListener('touchend', (e) => {
-            let diffX = e.changedTouches.clientX - touchStartX;
+            let diffX = e.changedTouches[0].clientX - touchStartX;
             if (!isPanelOpen && diffX > 30) togglePanel();
             else if (isPanelOpen && diffX < -30) togglePanel();
         }, { passive: true });
+
+        // Hold to reveal logic for mafia members
+        document.addEventListener('touchstart', (e) => {
+            const target = e.target;
+            if (target.closest && target.closest('.mafia-member-row')) {
+                const row = target.closest('.mafia-member-row');
+                const nameSpan = row.querySelector('span');
+                if (nameSpan) {
+                    nameSpan.classList.remove('blurred');
+                    nameSpan.classList.add('revealed');
+                }
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            const target = e.target;
+            if (target.closest && target.closest('.mafia-member-row')) {
+                const row = target.closest('.mafia-member-row');
+                const nameSpan = row.querySelector('span');
+                if (nameSpan) {
+                    nameSpan.classList.add('blurred');
+                    nameSpan.classList.remove('revealed');
+                }
+            }
+        }, { passive: true });
+
+        // Also add mouse events for desktop testing
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target;
+            if (target.closest && target.closest('.mafia-member-row')) {
+                const row = target.closest('.mafia-member-row');
+                const nameSpan = row.querySelector('span');
+                if (nameSpan) {
+                    nameSpan.classList.remove('blurred');
+                    nameSpan.classList.add('revealed');
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            const target = e.target;
+            if (target.closest && target.closest('.mafia-member-row')) {
+                const row = target.closest('.mafia-member-row');
+                const nameSpan = row.querySelector('span');
+                if (nameSpan) {
+                    nameSpan.classList.add('blurred');
+                    nameSpan.classList.remove('revealed');
+                }
+            }
+        });
 
         function loadChatHistoryAndListen() {
             if (!currentUsername || currentUsername === "Admin") return;
@@ -797,20 +1524,21 @@
                 if (isAll || isSender || isTarget) {
                     const div = document.createElement('div');
                     div.className = `msg ${isSender ? 'outgoing' : 'incoming'}`;
-                    
+
                     let targetLabel = "";
                     if (Array.isArray(m.targets)) {
                         targetLabel = `<span class="msg-target">🔒 Özəl: ${m.targets.join(', ')}</span>`;
                     }
 
-                    const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "";
+                    const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit',
+                        minute: '2-digit' }) : "";
 
                     div.innerHTML = `
-                        <span class="msg-meta">${m.sender}</span>
-                        <div>${m.text}</div>
-                        ${targetLabel}
-                        <span class="msg-time">${timeStr}</span>
-                    `;
+                                <span class="msg-meta">${m.sender}</span>
+                                <div>${m.text}</div>
+                                ${targetLabel}
+                                <span class="msg-time">${timeStr}</span>
+                            `;
                     chatBox.appendChild(div);
                 }
             });
@@ -830,7 +1558,7 @@
                 alliancePanel.innerHTML = "";
 
                 const isMafiaFaction = (myRole.toLowerCase() === "mafia" || myRole.toLowerCase() === "don");
-                
+
                 if (isMafiaFaction) {
                     alliancePanel.style.display = "flex";
                     Object.keys(allPlayers).forEach(k => {
@@ -841,9 +1569,9 @@
                                 const row = document.createElement('div');
                                 row.className = 'mafia-member-row';
                                 row.innerHTML = `
-                                    <img src="${p.photo}" alt="m">
-                                    <span>${p.name}</span>
-                                `;
+                                            <img src="${p.photo}" alt="m">
+                                            <span class="blurred">${p.name}</span>
+                                        `;
                                 alliancePanel.appendChild(row);
                             }
                         }
@@ -858,9 +1586,9 @@
                 const allCard = document.createElement('div');
                 allCard.className = `hz-player-card ${isAllSelected ? 'all-selected' : ''}`;
                 allCard.innerHTML = `
-                    <div class="all-icon-wrapper">ALL</div>
-                    <span>Hamı</span>
-                `;
+                            <div class="all-icon-wrapper">ALL</div>
+                            <span>Hamı</span>
+                        `;
                 allCard.addEventListener('click', () => {
                     isAllSelected = true;
                     selectedTargets = [];
@@ -872,17 +1600,17 @@
                 Object.keys(allPlayers).forEach(k => {
                     const p = allPlayers[k];
                     if (p.status === "active" && p.name && p.photo) {
-                        if (p.name === currentUsername) return; 
+                        if (p.name === currentUsername) return;
 
                         const card = document.createElement('div');
                         card.className = 'hz-player-card';
                         if (selectedTargets.includes(p.name)) card.classList.add('selected');
 
                         card.innerHTML = `
-                            <img src="${p.photo}" alt="p">
-                            <span>${p.name}</span>
-                        `;
-                        
+                                    <img src="${p.photo}" alt="p">
+                                    <span>${p.name}</span>
+                                `;
+
                         card.addEventListener('click', () => {
                             isAllSelected = false;
                             allCard.classList.remove('all-selected');
@@ -907,7 +1635,8 @@
         }
 
         document.getElementById('chat-send-btn').addEventListener('click', sendMessage);
-        document.getElementById('chat-input-field').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        document.getElementById('chat-input-field').addEventListener('keypress', (e) => { if (e.key === 'Enter')
+                sendMessage(); });
 
         function sendMessage() {
             const input = document.getElementById('chat-input-field');
@@ -921,8 +1650,8 @@
                 targets: selectedTargets.length > 0 ? selectedTargets : "all"
             };
 
-            db.ref('chat').push(msgData).then(() => { 
-                input.value = ""; 
+            db.ref('chat').push(msgData).then(() => {
+                input.value = "";
                 resetAppHeight();
             });
         }
