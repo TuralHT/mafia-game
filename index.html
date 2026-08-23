@@ -255,6 +255,10 @@
         .btn-mini.restore {
             background: #2980b9;
         }
+        .btn-mini.delete {
+            background: #7f1a1a;
+            margin-left: 4px;
+        }
         .role-controls {
             display: flex;
             align-items: center;
@@ -891,7 +895,7 @@
     <div class="start-announcement" id="global-start-banner">OYUN BAŞLADI, UĞURLAR</div>
     <div class="modal" id="confirm-modal">
         <div class="modal-box">
-            <p>Əminsinizmi? Bütün rollar və çat sıfırlanacak.</p>
+            <p id="modal-message">Əminsinizmi?</p>
             <div class="modal-btns">
                 <button class="btn-yes" id="modal-yes">Bəli</button>
                 <button class="btn-no" id="modal-no">Xeyr</button>
@@ -919,6 +923,7 @@
         let localPhotoBase64 = "";
         let streamRef = null;
         let faceDetectionInterval = null;
+        let pendingDeleteKey = null;
 
         const pages = {
             A: document.getElementById('page-a'),
@@ -1139,7 +1144,7 @@
 
         function handleFileSelection(inputElement, previewImgId) {
             inputElement.addEventListener('change', (e) => {
-                const file = e.target.files;
+                const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
                 reader.onload = function(event) {
@@ -1257,10 +1262,18 @@
                                     <img src="${p.photo}" alt="p">
                                     <span>${p.name}</span>
                                 </div>
-                                <button class="btn-mini restore" data-id="${p.name}">Bərpa</button>
+                                <div>
+                                    <button class="btn-mini restore" data-id="${p.name}">Bərpa</button>
+                                    <button class="btn-mini delete" data-id="${p.name}">Sil</button>
+                                </div>
                             `;
                     item.querySelector('.btn-mini.restore').addEventListener('click', () => {
                         db.ref('players/' + p.name).update({ status: "active" });
+                    });
+                    item.querySelector('.btn-mini.delete').addEventListener('click', () => {
+                        pendingDeleteKey = p.name;
+                        document.getElementById('modal-message').textContent = `"${p.name}" oyunçusunu silmək istədiyinizə əminsinizmi?`;
+                        document.getElementById('confirm-modal').style.display = 'flex';
                     });
                     archiveDiv.appendChild(item);
                 } else {
@@ -1343,10 +1356,26 @@
         }
 
         const modal = document.getElementById('confirm-modal');
-        document.getElementById('new-game-btn').addEventListener('click', () => { modal.style.display = 'flex'; });
-        document.getElementById('modal-no').addEventListener('click', () => { modal.style.display = 'none'; });
+        document.getElementById('new-game-btn').addEventListener('click', () => { 
+            document.getElementById('modal-message').textContent = "Əminsinizmi? Bütün rollar və çat sıfırlanacak.";
+            modal.style.display = 'flex'; 
+        });
+        document.getElementById('modal-no').addEventListener('click', () => { 
+            modal.style.display = 'none'; 
+            pendingDeleteKey = null;
+        });
         document.getElementById('modal-yes').addEventListener('click', () => {
             modal.style.display = 'none';
+            
+            // Check if it's a delete operation
+            if (pendingDeleteKey) {
+                db.ref('players/' + pendingDeleteKey).remove().then(() => {
+                    pendingDeleteKey = null;
+                });
+                return;
+            }
+            
+            // New game operation
             db.ref('game_status/distributed').set(false);
             db.ref('chat').remove();
             db.ref('players').once('value', snap => {
