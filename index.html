@@ -1005,6 +1005,7 @@
         let faceDetectionInterval = null;
         let pendingDeleteKey = null;
         let isMafiaZoomActive = false;
+        let mafiaDataReady = false; // Flag to ensure data is loaded before zoom
 
         const pages = {
             A: document.getElementById('page-a'),
@@ -1603,11 +1604,21 @@
             isMafiaZoomActive = false;
         }
 
-        // Role text hold to zoom - FIXED with correct timing and DOM detection
+        // Role text hold to zoom - FIXED with data readiness check
         const roleTextEl = document.getElementById('cabinet-role-box');
         let holdTimer = null;
 
         function startMafiaZoom() {
+            if (!mafiaDataReady) {
+                // Data not ready yet, try again after short delay
+                holdTimer = setTimeout(() => {
+                    if (mafiaDataReady) {
+                        startMafiaZoom();
+                    }
+                }, 300);
+                return;
+            }
+
             const role = roleTextEl.innerText.replace(/<br>/g, '').trim();
             if (role.toLowerCase() === 'mafia' || role.toLowerCase() === 'don') {
                 const mafiaMembers = getMafiaAllies();
@@ -1625,9 +1636,9 @@
             hideMafiaZoom();
         }
 
-        // Touch events for role text - with longer hold time
+        // Touch events for role text
         roleTextEl.addEventListener('touchstart', (e) => {
-            holdTimer = setTimeout(startMafiaZoom, 200);
+            holdTimer = setTimeout(startMafiaZoom, 150);
         }, { passive: true });
 
         roleTextEl.addEventListener('touchend', () => {
@@ -1640,7 +1651,7 @@
 
         // Mouse events for desktop testing
         roleTextEl.addEventListener('mousedown', (e) => {
-            holdTimer = setTimeout(startMafiaZoom, 200);
+            holdTimer = setTimeout(startMafiaZoom, 150);
         });
 
         roleTextEl.addEventListener('mouseup', () => {
@@ -1654,7 +1665,6 @@
         // ===================== OPTIMIZED SENSITIVE WORD FILTER (NO LAG) =====================
         // Pre-compiled regex for maximum performance
         const sensitivePatterns = [
-            // Role names - exact matches with common variations
             'sivil', 'həkim', 'həkin', 'kamekadze', 'kamekadzi', 'komissar', 'vətəndaş', 'dedektiv',
             'mafiya', 'don', 'hakim', 'doktor', 'polis', 'müstəntiq', 'casus', 'qatil',
             'civil', 'doctor', 'kamikaze', 'commissioner', 'citizen', 'detective', 'mafia',
@@ -1666,9 +1676,7 @@
             'komisar', 'detektiv', 'detektif', 'civıl', 'cıvıl', 'sıvıl', 'sivıl'
         ];
 
-        // Build optimized regex with word boundaries and common obfuscation patterns
         function buildSensitiveRegex() {
-            // Add common obfuscation patterns
             const obfuscatedPatterns = [];
             const leetMap = {
                 'a': '[a@4аαΛ]',
@@ -1690,7 +1698,6 @@
             };
 
             sensitivePatterns.forEach(word => {
-                // Build regex with character alternates
                 let pattern = '';
                 for (const char of word.toLowerCase()) {
                     if (leetMap[char]) {
@@ -1699,12 +1706,10 @@
                         pattern += char;
                     }
                 }
-                // Add separator patterns between characters
                 const sepPattern = pattern.split('').join('[^a-z0-9]*');
                 obfuscatedPatterns.push(sepPattern);
             });
 
-            // Build final regex with word boundaries for exact matches
             const regexString = obfuscatedPatterns.map(p => `(?:^|[^a-z0-9])${p}(?:$|[^a-z0-9])`).join('|');
             return new RegExp(regexString, 'i');
         }
@@ -1713,7 +1718,6 @@
 
         function containsSensitiveWord(text) {
             if (!text || text.length < 3) return false;
-            // Quick check with optimized regex
             return sensitiveRegex.test(text);
         }
 
@@ -1724,55 +1728,59 @@
             return text;
         }
 
-        // ===================== CHAT FUNCTIONS =====================
+        // ===================== CHAT FUNCTIONS - OPTIMIZED =====================
         function loadChatHistoryAndListen() {
             if (!currentUsername || currentUsername === "Admin") return;
             const chatBox = document.getElementById('chat-messages-container');
             chatBox.innerHTML = "";
 
+            // Load initial messages
             db.ref('chat').once('value', snapshot => {
-                renderMessages(snapshot.val() || {});
-                db.ref('chat').on('value', liveSnapshot => {
-                    renderMessages(liveSnapshot.val() || {});
+                const messages = snapshot.val() || {};
+                Object.keys(messages).forEach(key => {
+                    appendMessage(messages[key]);
                 });
+                chatBox.scrollTop = chatBox.scrollHeight;
             });
+
+            // Listen for new messages only (child_added)
+            db.ref('chat').on('child_added', snapshot => {
+                const msg = snapshot.val();
+                if (msg) {
+                    appendMessage(msg);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            });
+
             listenToCabinetPlayersAndRoles();
         }
 
-        function renderMessages(messages) {
+        function appendMessage(m) {
             const chatBox = document.getElementById('chat-messages-container');
-            chatBox.innerHTML = "";
+            const isAll = m.targets === "all";
+            const isSender = m.sender === currentUsername;
+            const isTarget = Array.isArray(m.targets) && m.targets.includes(currentUsername);
 
-            Object.keys(messages).forEach(mKey => {
-                const m = messages[mKey];
-                const isAll = m.targets === "all";
-                const isSender = m.sender === currentUsername;
-                const isTarget = Array.isArray(m.targets) && m.targets.includes(currentUsername);
+            if (!(isAll || isSender || isTarget)) return;
 
-                if (isAll || isSender || isTarget) {
-                    const div = document.createElement('div');
-                    div.className = `msg ${isSender ? 'outgoing' : 'incoming'}`;
+            const div = document.createElement('div');
+            div.className = `msg ${isSender ? 'outgoing' : 'incoming'}`;
 
-                    let targetLabel = "";
-                    if (Array.isArray(m.targets)) {
-                        targetLabel = `<span class="msg-target">🔒 Özəl: ${m.targets.join(', ')}</span>`;
-                    }
+            let targetLabel = "";
+            if (Array.isArray(m.targets)) {
+                targetLabel = `<span class="msg-target">🔒 Özəl: ${m.targets.join(', ')}</span>`;
+            }
 
-                    const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit',
-                        minute: '2-digit' }) : "";
+            const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
+            const displayText = filterSensitiveMessage(m.text);
 
-                    const displayText = filterSensitiveMessage(m.text);
-
-                    div.innerHTML = `
-                                <span class="msg-meta">${m.sender}</span>
-                                <div>${displayText}</div>
-                                ${targetLabel}
-                                <span class="msg-time">${timeStr}</span>
-                            `;
-                    chatBox.appendChild(div);
-                }
-            });
-            chatBox.scrollTop = chatBox.scrollHeight;
+            div.innerHTML = `
+                        <span class="msg-meta">${m.sender}</span>
+                        <div>${displayText}</div>
+                        ${targetLabel}
+                        <span class="msg-time">${timeStr}</span>
+                    `;
+            chatBox.appendChild(div);
         }
 
         function listenToCabinetPlayersAndRoles() {
@@ -1791,6 +1799,7 @@
 
                 if (isMafiaFaction) {
                     alliancePanel.style.display = "flex";
+                    let mafiaCount = 0;
                     Object.keys(allPlayers).forEach(k => {
                         const p = allPlayers[k];
                         if (p.status === "active" && p.name !== currentUsername) {
@@ -1803,13 +1812,18 @@
                                             <span class="blurred">${p.name}</span>
                                         `;
                                 alliancePanel.appendChild(row);
+                                mafiaCount++;
                             }
                         }
                     });
+                    // Set data ready flag if mafia members exist
+                    mafiaDataReady = mafiaCount > 0;
                 } else {
                     alliancePanel.style.display = "none";
+                    mafiaDataReady = false;
                 }
 
+                // Update horizontal list
                 const hzList = document.getElementById('hz-chat-list');
                 hzList.innerHTML = "";
 
@@ -1873,6 +1887,7 @@
             const txt = input.value.trim();
             if (!txt || !currentUsername) return;
 
+            // Apply sensitive word filter
             const filteredText = filterSensitiveMessage(txt);
 
             const msgData = {
