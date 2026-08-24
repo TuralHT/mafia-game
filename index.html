@@ -1005,7 +1005,7 @@
         let faceDetectionInterval = null;
         let pendingDeleteKey = null;
         let isMafiaZoomActive = false;
-        let mafiaDataReady = false; // Flag to ensure data is loaded before zoom
+        let mafiaDataReady = false;
 
         const pages = {
             A: document.getElementById('page-a'),
@@ -1556,7 +1556,7 @@
             else if (isPanelOpen && diffX < -30) togglePanel();
         }, { passive: true });
 
-        // ===================== MAFIA ZOOM - 4x RIGHT-ALIGNED (FIXED) =====================
+        // ===================== MAFIA ZOOM - FIXED =====================
         function getMafiaAllies() {
             const alliancePanel = document.getElementById('mafia-alliance-panel');
             const rows = alliancePanel.querySelectorAll('.mafia-member-row');
@@ -1604,21 +1604,11 @@
             isMafiaZoomActive = false;
         }
 
-        // Role text hold to zoom - FIXED with data readiness check
         const roleTextEl = document.getElementById('cabinet-role-box');
         let holdTimer = null;
 
         function startMafiaZoom() {
-            if (!mafiaDataReady) {
-                // Data not ready yet, try again after short delay
-                holdTimer = setTimeout(() => {
-                    if (mafiaDataReady) {
-                        startMafiaZoom();
-                    }
-                }, 300);
-                return;
-            }
-
+            // Always allow zoom attempt, but check role and data
             const role = roleTextEl.innerText.replace(/<br>/g, '').trim();
             if (role.toLowerCase() === 'mafia' || role.toLowerCase() === 'don') {
                 const mafiaMembers = getMafiaAllies();
@@ -1636,9 +1626,10 @@
             hideMafiaZoom();
         }
 
-        // Touch events for role text
+        // Touch events with improved responsiveness
         roleTextEl.addEventListener('touchstart', (e) => {
-            holdTimer = setTimeout(startMafiaZoom, 150);
+            // Small delay to ensure UI is ready
+            holdTimer = setTimeout(startMafiaZoom, 100);
         }, { passive: true });
 
         roleTextEl.addEventListener('touchend', () => {
@@ -1649,9 +1640,9 @@
             stopMafiaZoom();
         }, { passive: true });
 
-        // Mouse events for desktop testing
+        // Mouse events for desktop
         roleTextEl.addEventListener('mousedown', (e) => {
-            holdTimer = setTimeout(startMafiaZoom, 150);
+            holdTimer = setTimeout(startMafiaZoom, 100);
         });
 
         roleTextEl.addEventListener('mouseup', () => {
@@ -1662,8 +1653,7 @@
             stopMafiaZoom();
         });
 
-        // ===================== OPTIMIZED SENSITIVE WORD FILTER (NO LAG) =====================
-        // Pre-compiled regex for maximum performance
+        // ===================== OPTIMIZED SENSITIVE WORD FILTER =====================
         const sensitivePatterns = [
             'sivil', 'həkim', 'həkin', 'kamekadze', 'kamekadzi', 'komissar', 'vətəndaş', 'dedektiv',
             'mafiya', 'don', 'hakim', 'doktor', 'polis', 'müstəntiq', 'casus', 'qatil',
@@ -1728,25 +1718,34 @@
             return text;
         }
 
-        // ===================== CHAT FUNCTIONS - OPTIMIZED =====================
+        // ===================== CHAT FUNCTIONS - FULLY OPTIMIZED =====================
         function loadChatHistoryAndListen() {
             if (!currentUsername || currentUsername === "Admin") return;
             const chatBox = document.getElementById('chat-messages-container');
             chatBox.innerHTML = "";
 
-            // Load initial messages
+            // Load initial messages with filter
             db.ref('chat').once('value', snapshot => {
                 const messages = snapshot.val() || {};
                 Object.keys(messages).forEach(key => {
-                    appendMessage(messages[key]);
+                    const msg = messages[key];
+                    // Apply filter to existing messages
+                    if (msg && msg.text) {
+                        msg.text = filterSensitiveMessage(msg.text);
+                    }
+                    appendMessage(msg);
                 });
                 chatBox.scrollTop = chatBox.scrollHeight;
             });
 
-            // Listen for new messages only (child_added)
+            // Listen for new messages only
             db.ref('chat').on('child_added', snapshot => {
                 const msg = snapshot.val();
                 if (msg) {
+                    // Apply filter to new messages
+                    if (msg.text) {
+                        msg.text = filterSensitiveMessage(msg.text);
+                    }
                     appendMessage(msg);
                     chatBox.scrollTop = chatBox.scrollHeight;
                 }
@@ -1757,6 +1756,8 @@
 
         function appendMessage(m) {
             const chatBox = document.getElementById('chat-messages-container');
+            if (!m || !m.sender) return;
+
             const isAll = m.targets === "all";
             const isSender = m.sender === currentUsername;
             const isTarget = Array.isArray(m.targets) && m.targets.includes(currentUsername);
@@ -1772,7 +1773,9 @@
             }
 
             const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "";
-            const displayText = filterSensitiveMessage(m.text);
+
+            // Use filtered text (already applied in load/child_added)
+            const displayText = m.text || '';
 
             div.innerHTML = `
                         <span class="msg-meta">${m.sender}</span>
@@ -1816,11 +1819,12 @@
                             }
                         }
                     });
-                    // Set data ready flag if mafia members exist
-                    mafiaDataReady = mafiaCount > 0;
+                    // Always set data ready flag to true for mafia members
+                    mafiaDataReady = true;
                 } else {
                     alliancePanel.style.display = "none";
-                    mafiaDataReady = false;
+                    // For non-mafia, set ready flag but zoom will be blocked by role check
+                    mafiaDataReady = true;
                 }
 
                 // Update horizontal list
@@ -1887,7 +1891,7 @@
             const txt = input.value.trim();
             if (!txt || !currentUsername) return;
 
-            // Apply sensitive word filter
+            // Apply filter before sending
             const filteredText = filterSensitiveMessage(txt);
 
             const msgData = {
