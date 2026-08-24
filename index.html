@@ -1005,7 +1005,6 @@
         let faceDetectionInterval = null;
         let pendingDeleteKey = null;
         let isMafiaZoomActive = false;
-        let mafiaDataReady = false;
 
         const pages = {
             A: document.getElementById('page-a'),
@@ -1608,16 +1607,15 @@
         let holdTimer = null;
 
         function startMafiaZoom() {
-            // Always allow zoom attempt, but check role and data
             const role = roleTextEl.innerText.replace(/<br>/g, '').trim();
             if (role.toLowerCase() === 'mafia' || role.toLowerCase() === 'don') {
-                const mafiaMembers = getMafiaAllies();
-                if (mafiaMembers && mafiaMembers.length > 0) {
-                    showMafiaZoom(mafiaMembers);
-                }
-            }
+        // Hər dəfə siyahını yenidən oxu
+                 const mafiaMembers = getMafiaAllies();
+                 if (mafiaMembers && mafiaMembers.length > 0) {
+            showMafiaZoom(mafiaMembers);
         }
-
+    }
+}
         function stopMafiaZoom() {
             if (holdTimer) {
                 clearTimeout(holdTimer);
@@ -1819,12 +1817,8 @@
                             }
                         }
                     });
-                    // Always set data ready flag to true for mafia members
-                    mafiaDataReady = true;
                 } else {
                     alliancePanel.style.display = "none";
-                    // For non-mafia, set ready flag but zoom will be blocked by role check
-                    mafiaDataReady = true;
                 }
 
                 // Update horizontal list
