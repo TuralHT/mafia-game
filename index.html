@@ -489,7 +489,7 @@
             filter: blur(0);
         }
 
-        /* Mafia zoom overlay - 4x larger, transparent background */
+        /* Mafia Zoom Overlay - 4x larger, right-aligned, no background */
         .mafia-zoom-overlay {
             position: fixed;
             top: 0;
@@ -499,9 +499,10 @@
             pointer-events: none;
             z-index: 9999;
             display: none;
-            justify-content: center;
+            justify-content: flex-end;
             align-items: center;
             background: transparent !important;
+            padding-right: 20px;
         }
         .mafia-zoom-container {
             display: flex;
@@ -512,6 +513,8 @@
             gap: 30px;
             padding: 30px;
             background: transparent !important;
+            transform-origin: right center;
+            transform: scale(4);
         }
         .mafia-zoom-item {
             display: flex;
@@ -519,9 +522,6 @@
             align-items: center;
             gap: 8px;
             background: transparent !important;
-            transform: scale(4);
-            transform-origin: center;
-            transition: transform 0.15s ease;
         }
         .mafia-zoom-item img {
             width: 56px !important;
@@ -839,8 +839,10 @@
             .start-announcement {
                 font-size: 32px;
             }
-            .mafia-zoom-item {
+            .mafia-zoom-container {
                 transform: scale(3.5);
+                gap: 20px;
+                padding: 20px;
             }
             .mafia-zoom-item img {
                 width: 48px !important;
@@ -975,7 +977,7 @@
         </div>
     </div>
 
-    <!-- Mafia Zoom Overlay - 4x larger -->
+    <!-- Mafia Zoom Overlay - 4x larger, right-aligned -->
     <div id="mafia-zoom-overlay" class="mafia-zoom-overlay">
         <div id="mafia-zoom-container" class="mafia-zoom-container"></div>
     </div>
@@ -1553,7 +1555,24 @@
             else if (isPanelOpen && diffX < -30) togglePanel();
         }, { passive: true });
 
-        // ===================== MAFIA ZOOM ON HOLD (4x larger) =====================
+        // ===================== MAFIA ZOOM - 4x RIGHT-ALIGNED (FIXED) =====================
+        function getMafiaAllies() {
+            const alliancePanel = document.getElementById('mafia-alliance-panel');
+            const rows = alliancePanel.querySelectorAll('.mafia-member-row');
+            const members = [];
+            rows.forEach(row => {
+                const img = row.querySelector('img');
+                const span = row.querySelector('span');
+                if (img && span && span.textContent) {
+                    members.push({
+                        photo: img.src,
+                        name: span.textContent
+                    });
+                }
+            });
+            return members;
+        }
+
         function showMafiaZoom(mafiaMembers) {
             const overlay = document.getElementById('mafia-zoom-overlay');
             const container = document.getElementById('mafia-zoom-container');
@@ -1584,24 +1603,7 @@
             isMafiaZoomActive = false;
         }
 
-        function getMafiaAllies() {
-            const alliancePanel = document.getElementById('mafia-alliance-panel');
-            const rows = alliancePanel.querySelectorAll('.mafia-member-row');
-            const members = [];
-            rows.forEach(row => {
-                const img = row.querySelector('img');
-                const span = row.querySelector('span');
-                if (img && span) {
-                    members.push({
-                        photo: img.src,
-                        name: span.textContent
-                    });
-                }
-            });
-            return members;
-        }
-
-        // Role text hold to zoom - improved with touch support
+        // Role text hold to zoom - FIXED with correct timing and DOM detection
         const roleTextEl = document.getElementById('cabinet-role-box');
         let holdTimer = null;
 
@@ -1623,9 +1625,9 @@
             hideMafiaZoom();
         }
 
-        // Touch events for role text
+        // Touch events for role text - with longer hold time
         roleTextEl.addEventListener('touchstart', (e) => {
-            holdTimer = setTimeout(startMafiaZoom, 150);
+            holdTimer = setTimeout(startMafiaZoom, 200);
         }, { passive: true });
 
         roleTextEl.addEventListener('touchend', () => {
@@ -1636,9 +1638,9 @@
             stopMafiaZoom();
         }, { passive: true });
 
-        // Mouse events for role text (desktop testing)
+        // Mouse events for desktop testing
         roleTextEl.addEventListener('mousedown', (e) => {
-            holdTimer = setTimeout(startMafiaZoom, 150);
+            holdTimer = setTimeout(startMafiaZoom, 200);
         });
 
         roleTextEl.addEventListener('mouseup', () => {
@@ -1649,175 +1651,70 @@
             stopMafiaZoom();
         });
 
-        // ===================== ENHANCED SENSITIVE WORD FILTER =====================
-        // Comprehensive list of sensitive words in multiple languages
-        const sensitiveWords = [
-            // Azerbaijani
+        // ===================== OPTIMIZED SENSITIVE WORD FILTER (NO LAG) =====================
+        // Pre-compiled regex for maximum performance
+        const sensitivePatterns = [
+            // Role names - exact matches with common variations
             'sivil', 'həkim', 'həkin', 'kamekadze', 'kamekadzi', 'komissar', 'vətəndaş', 'dedektiv',
             'mafiya', 'don', 'hakim', 'doktor', 'polis', 'müstəntiq', 'casus', 'qatil',
-            // English
-            'civil', 'doctor', 'kamikaze', 'commissioner', 'citizen', 'detective', 'mafia', 'don',
+            'civil', 'doctor', 'kamikaze', 'commissioner', 'citizen', 'detective', 'mafia',
             'police', 'investigator', 'spy', 'killer', 'sheriff', 'judge', 'lawyer',
-            // Russian
-            'сивил', 'хəким', 'камикадзе', 'комиссар', 'детектив', 'мафия', 'дон',
+            'сивил', 'хəким', 'камикадзе', 'комиссар', 'детектив', 'мафия',
             'доктор', 'полиция', 'следователь', 'шпион', 'убийца', 'шериф', 'судья',
-            // Turkish
-            'sivil', 'hekim', 'kamikaze', 'komiser', 'vatandaş', 'dedektif', 'mafya', 'don',
-            'doktor', 'polis', 'müfettiş', 'casus', 'katil', 'şerif', 'hakim',
-            // Common variations
-            'hekım', 'hekïm', 'hekîm', 'doktor', 'doxtor', 'kamisadze', 'kamisadzi',
-            'komisar', 'komissar', 'detektiv', 'detektif', 'mafia', 'mafiya', 'don',
-            'civıl', 'cıvıl', 'sıvıl', 'sivıl'
+            'hekim', 'komiser', 'mafya', 'müfettiş', 'katil', 'şerif',
+            'hekım', 'hekïm', 'hekîm', 'doxtor', 'kamisadze', 'kamisadzi',
+            'komisar', 'detektiv', 'detektif', 'civıl', 'cıvıl', 'sıvıl', 'sivıl'
         ];
 
-        // Generate all possible obfuscation patterns
-        function generateAllPatterns() {
-            const patterns = new Set();
-            const separators = ['', '_', '-', '.', '*', '#', '~', '+', '=', '!', '?', '&', '%', '$', '@', '|', '/', '\\', ' '];
-
-            // Character substitution maps
-            const subs = {
-                'a': ['@', '4', 'а', 'α', 'Λ'],
-                'e': ['3', 'е', 'ε', 'ξ'],
-                'i': ['1', '!', 'ı', 'і', 'ι', '|'],
-                'o': ['0', 'о', 'σ', 'ø'],
-                'u': ['ü', 'у', 'υ', 'µ'],
-                'ə': ['e', 'a', 'æ'],
-                'ş': ['sh', 's', 'ş', 'ṡ'],
-                'ç': ['ch', 'c', 'ç', 'ċ'],
-                'ğ': ['g', 'ğ', 'ġ'],
-                'ö': ['o', 'oe', 'ö'],
-                'ü': ['u', 'ue', 'ü'],
-                'd': ['đ', 'ḍ'],
-                't': ['7', 'ţ', 'ṭ'],
-                'k': ['k', 'κ', 'ķ'],
-                'm': ['m', 'μ'],
-                'n': ['n', 'η'],
-                'r': ['r', 'ρ'],
-                's': ['5', '$', 'ş', 'ṡ'],
-                'v': ['v', 'ν'],
-                'y': ['y', 'γ']
+        // Build optimized regex with word boundaries and common obfuscation patterns
+        function buildSensitiveRegex() {
+            // Add common obfuscation patterns
+            const obfuscatedPatterns = [];
+            const leetMap = {
+                'a': '[a@4аαΛ]',
+                'e': '[e3еεξ]',
+                'i': '[i1!ıіι|]',
+                'o': '[o0оσø]',
+                'u': '[uüуυµ]',
+                's': '[s5$şṡ]',
+                't': '[t7ţṭ]',
+                'c': '[cçċ]',
+                'g': '[gğġ]',
+                'd': '[dđḍ]',
+                'k': '[kκķ]',
+                'm': '[mμ]',
+                'n': '[nη]',
+                'r': '[rρ]',
+                'v': '[vν]',
+                'y': '[yγ]'
             };
 
-            // Generate variations for a word
-            function generateVariations(word) {
-                const results = new Set();
-                const chars = word.toLowerCase().split('');
-
-                // Original
-                results.add(word.toLowerCase());
-
-                // Character substitutions
-                function substituteChars(arr, index) {
-                    if (index >= arr.length) {
-                        results.add(arr.join(''));
-                        return;
-                    }
-                    const char = arr[index];
-                    if (subs[char]) {
-                        for (const sub of subs[char]) {
-                            const newArr = [...arr];
-                            newArr[index] = sub;
-                            substituteChars(newArr, index + 1);
-                        }
-                    }
-                    substituteChars(arr, index + 1);
-                }
-                substituteChars([...chars], 0);
-
-                // Add separators between characters
-                for (const sep of separators) {
-                    if (sep !== '') {
-                        const withSep = chars.join(sep);
-                        results.add(withSep);
-                        // Multiple separators
-                        for (let i = 1; i < chars.length; i++) {
-                            const parts = [];
-                            for (let j = 0; j < chars.length; j++) {
-                                parts.push(chars[j]);
-                                if (j < chars.length - 1) {
-                                    parts.push(sep.repeat((j % 2) + 1));
-                                }
-                            }
-                            results.add(parts.join(''));
-                        }
-                    }
-                }
-
-                // Leetspeak variations
-                const leetMap = {
-                    'a': ['4', '@', '∆'],
-                    'e': ['3', '£'],
-                    'i': ['1', '|', '!'],
-                    'o': ['0', '()'],
-                    's': ['5', '$'],
-                    't': ['7', '+'],
-                    'g': ['9', '6'],
-                    'b': ['8', 'ß'],
-                    'z': ['2'],
-                    'r': ['®']
-                };
-
-                function generateLeet(str, idx) {
-                    if (idx >= str.length) {
-                        results.add(str);
-                        return;
-                    }
-                    const char = str[idx];
+            sensitivePatterns.forEach(word => {
+                // Build regex with character alternates
+                let pattern = '';
+                for (const char of word.toLowerCase()) {
                     if (leetMap[char]) {
-                        for (const sub of leetMap[char]) {
-                            generateLeet(str.slice(0, idx) + sub + str.slice(idx + 1), idx + 1);
-                        }
+                        pattern += leetMap[char];
+                    } else {
+                        pattern += char;
                     }
-                    generateLeet(str, idx + 1);
                 }
-                generateLeet(word.toLowerCase(), 0);
-
-                return Array.from(results);
-            }
-
-            // Generate patterns for all sensitive words
-            sensitiveWords.forEach(word => {
-                const vars = generateVariations(word);
-                vars.forEach(v => patterns.add(v));
+                // Add separator patterns between characters
+                const sepPattern = pattern.split('').join('[^a-z0-9]*');
+                obfuscatedPatterns.push(sepPattern);
             });
 
-            // Add common role words with extra obfuscation
-            const extraObfuscations = [
-                'h3k1m', 'd0kt0r', 'k4m1k4d3', 'c0m1ss4r', 'd3t3kt1v',
-                'm4f14', 'd0n', 'c1v1l', 'd0kt0r', 'p0l1c3'
-            ];
-            extraObfuscations.forEach(w => patterns.add(w));
-
-            return Array.from(patterns);
+            // Build final regex with word boundaries for exact matches
+            const regexString = obfuscatedPatterns.map(p => `(?:^|[^a-z0-9])${p}(?:$|[^a-z0-9])`).join('|');
+            return new RegExp(regexString, 'i');
         }
 
-        const allSensitivePatterns = generateAllPatterns();
+        const sensitiveRegex = buildSensitiveRegex();
 
         function containsSensitiveWord(text) {
-            const lowerText = text.toLowerCase();
-
-            // Check exact patterns
-            for (const pattern of allSensitivePatterns) {
-                if (lowerText.includes(pattern)) {
-                    return true;
-                }
-            }
-
-            // Check for patterns with any combination of separators
-            const cleanText = lowerText.replace(/[^a-z0-9]/g, '');
-            for (const word of sensitiveWords) {
-                const cleanWord = word.toLowerCase().replace(/[^a-z0-9]/g, '');
-                if (cleanText.includes(cleanWord)) {
-                    // Check if original had separators between characters
-                    const regex = new RegExp(word.split('').join('[^a-z0-9]*'), 'i');
-                    if (regex.test(lowerText)) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
+            if (!text || text.length < 3) return false;
+            // Quick check with optimized regex
+            return sensitiveRegex.test(text);
         }
 
         function filterSensitiveMessage(text) {
@@ -1864,7 +1761,6 @@
                     const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit',
                         minute: '2-digit' }) : "";
 
-                    // Filter message text
                     const displayText = filterSensitiveMessage(m.text);
 
                     div.innerHTML = `
@@ -1977,7 +1873,6 @@
             const txt = input.value.trim();
             if (!txt || !currentUsername) return;
 
-            // Filter sensitive content
             const filteredText = filterSensitiveMessage(txt);
 
             const msgData = {
