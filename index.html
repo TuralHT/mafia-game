@@ -1007,6 +1007,7 @@
         let faceDetectionInterval = null;
         let pendingDeleteKey = null;
         let isMafiaZoomActive = false;
+        let myCurrentRole = ""; // Oyunçunun həqiqi rolu — DOM-dan yox, birbaşa buradan oxunacaq
 
         const pages = {
             A: document.getElementById('page-a'),
@@ -1609,15 +1610,16 @@
         let holdTimer = null;
 
         function startMafiaZoom() {
-            const role = roleTextEl.innerText.replace(/<br>/g, '').trim();
-            if (role.toLowerCase() === 'mafia' || role.toLowerCase() === 'don') {
-        // Hər dəfə siyahını yenidən oxu
-                 const mafiaMembers = getMafiaAllies();
-                 if (mafiaMembers && mafiaMembers.length > 0) {
-            showMafiaZoom(mafiaMembers);
+            // DOM-un innerText-i etibarsızdır (<br> newline-a çevrilir), ona görə dəyişəndən oxuyuruq
+            const role = myCurrentRole.toLowerCase().trim();
+            if (role === 'mafia' || role === 'don') {
+                // Hər dəfə siyahını yenidən oxu
+                const mafiaMembers = getMafiaAllies();
+                if (mafiaMembers && mafiaMembers.length > 0) {
+                    showMafiaZoom(mafiaMembers);
+                }
+            }
         }
-    }
-}
         function stopMafiaZoom() {
             if (holdTimer) {
                 clearTimeout(holdTimer);
@@ -1793,6 +1795,7 @@
                 if (!myData) return;
 
                 const myRole = myData.role || "Boşdur";
+                myCurrentRole = myRole; // Əsl rolu saxla (zoom yoxlaması üçün)
                 document.getElementById('cabinet-role-box').innerHTML = myRole.split('').join('<br>');
 
                 const alliancePanel = document.getElementById('mafia-alliance-panel');
