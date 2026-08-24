@@ -491,7 +491,7 @@
             filter: blur(0);
         }
 
-        /* Mafia Zoom Overlay - 4x larger, right-aligned, no background */
+        /* Mafia Zoom Overlay - öz mövqeyindən sağa/aşağıya böyüyür */
         .mafia-zoom-overlay {
             position: fixed;
             top: 0;
@@ -501,44 +501,41 @@
             pointer-events: none;
             z-index: 9999;
             display: none;
-            justify-content: flex-end;
-            align-items: center;
             background: transparent !important;
-            padding-right: 20px;
         }
         .mafia-zoom-container {
+            position: absolute;
             display: flex;
-            flex-direction: row;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 30px;
-            padding: 30px;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 0;
             background: transparent !important;
-            transform-origin: right center;
+            transform-origin: top left;
             transform: scale(4);
         }
         .mafia-zoom-item {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
             background: transparent !important;
         }
         .mafia-zoom-item img {
-            width: 56px !important;
-            height: 56px !important;
+            width: 20px !important;
+            height: 20px !important;
             border-radius: 50%;
             object-fit: cover;
-            border: 2px solid #ff333388;
+            border: 1px solid #ff333388;
             background: transparent !important;
-            box-shadow: 0 0 30px rgba(255, 51, 51, 0.4);
+            box-shadow: 0 0 10px rgba(255, 51, 51, 0.4);
         }
         .mafia-zoom-item span {
             color: #ff6666;
-            font-size: 14px;
+            font-size: 8px;
             font-weight: bold;
-            text-shadow: 0 0 15px rgba(0,0,0,0.9);
+            text-shadow: 0 0 6px rgba(0,0,0,0.9);
             background: transparent !important;
             text-align: center;
             white-space: nowrap;
@@ -843,15 +840,14 @@
             }
             .mafia-zoom-container {
                 transform: scale(3.5);
-                gap: 20px;
-                padding: 20px;
+                gap: 8px;
             }
             .mafia-zoom-item img {
-                width: 48px !important;
-                height: 48px !important;
+                width: 18px !important;
+                height: 18px !important;
             }
             .mafia-zoom-item span {
-                font-size: 12px;
+                font-size: 7px;
             }
         }
     </style>
@@ -1586,6 +1582,13 @@
                 return;
             }
 
+            // Konteyneri orijinal siyahının (mafia-alliance-panel) tam üstünə qoyuruq
+            // ki, böyümə elə həmin nöqtədən sağa/aşağıya doğru baş versin
+            const sourcePanel = document.getElementById('mafia-alliance-panel');
+            const rect = sourcePanel.getBoundingClientRect();
+            container.style.left = rect.left + 'px';
+            container.style.top = rect.top + 'px';
+
             mafiaMembers.forEach(member => {
                 const item = document.createElement('div');
                 item.className = 'mafia-zoom-item';
@@ -1596,7 +1599,7 @@
                 container.appendChild(item);
             });
 
-            overlay.style.display = 'flex';
+            overlay.style.display = 'block';
             isMafiaZoomActive = true;
         }
 
