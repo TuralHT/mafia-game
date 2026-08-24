@@ -259,6 +259,20 @@
             background: #7f1a1a;
             margin-left: 4px;
         }
+        .player-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .btn-mini.sms-toggle {
+            background: #8e44ad;
+        }
+        .btn-mini.sms-toggle.is-blocked {
+            background: #16a085;
+        }
+        .btn-mini.delete-active {
+            background: #c0392b;
+        }
         .role-controls {
             display: flex;
             align-items: center;
@@ -1002,9 +1016,10 @@
         let localPhotoBase64 = "";
         let streamRef = null;
         let faceDetectionInterval = null;
-        let pendingDeleteKey = null;
+        let pendingAction = null; // { type: 'archive' | 'delete', key: string }
         let isMafiaZoomActive = false;
         let myCurrentRole = ""; // Oyunçunun həqiqi rolu — DOM-dan yox, birbaşa buradan oxunacaq
+        let myIsSmsBlocked = false; // Admin tərəfindən sms yazmağı bloklanıbmı?
 
         const pages = {
             A: document.getElementById('page-a'),
@@ -1322,6 +1337,7 @@
 
                 if (p.status === "active" && !isCorrupted) {
                     activeCount++;
+                    const isBlocked = !!p.smsBlocked;
                     const item = document.createElement('div');
                     item.className = 'player-item';
                     item.innerHTML = `
@@ -1329,10 +1345,18 @@
                                     <img src="${p.photo}" alt="p">
                                     <div><strong>${p.name}</strong> <br><small style="color:#aaa;">Rol: ${p.role || 'Boşdur'}</small></div>
                                 </div>
-                                <button class="btn-mini" data-id="${p.name}">Sil</button>
+                                <div class="player-actions">
+                                    <button class="btn-mini sms-toggle ${isBlocked ? 'is-blocked' : ''}" data-id="${p.name}">${isBlocked ? 'SMS Aç' : 'SMS Blok'}</button>
+                                    <button class="btn-mini delete-active" data-id="${p.name}">Sil</button>
+                                </div>
                             `;
-                    item.querySelector('.btn-mini').addEventListener('click', () => {
-                        db.ref('players/' + p.name).update({ status: "archived" });
+                    item.querySelector('.sms-toggle').addEventListener('click', () => {
+                        db.ref('players/' + p.name).update({ smsBlocked: !isBlocked });
+                    });
+                    item.querySelector('.delete-active').addEventListener('click', () => {
+                        pendingAction = { type: 'archive', key: p.name };
+                        document.getElementById('modal-message').textContent = `"${p.name}" oyunçusunu arxivə köçürmək istədiyinizə əminsinizmi?`;
+                        document.getElementById('confirm-modal').style.display = 'flex';
                     });
                     activeDiv.appendChild(item);
                 } else if (p.status === "archived" && !isCorrupted) {
@@ -1352,7 +1376,7 @@
                         db.ref('players/' + p.name).update({ status: "active" });
                     });
                     item.querySelector('.btn-mini.delete').addEventListener('click', () => {
-                        pendingDeleteKey = p.name;
+                        pendingAction = { type: 'delete', key: p.name };
                         document.getElementById('modal-message').textContent = `"${p.name}" oyunçusunu silmək istədiyinizə əminsinizmi?`;
                         document.getElementById('confirm-modal').style.display = 'flex';
                     });
@@ -1443,15 +1467,18 @@
         });
         document.getElementById('modal-no').addEventListener('click', () => {
             modal.style.display = 'none';
-            pendingDeleteKey = null;
+            pendingAction = null;
         });
         document.getElementById('modal-yes').addEventListener('click', () => {
             modal.style.display = 'none';
 
-            if (pendingDeleteKey) {
-                db.ref('players/' + pendingDeleteKey).remove().then(() => {
-                    pendingDeleteKey = null;
-                });
+            if (pendingAction) {
+                if (pendingAction.type === 'archive') {
+                    db.ref('players/' + pendingAction.key).update({ status: "archived" });
+                } else if (pendingAction.type === 'delete') {
+                    db.ref('players/' + pendingAction.key).remove();
+                }
+                pendingAction = null;
                 return;
             }
 
@@ -1659,62 +1686,51 @@
             stopMafiaZoom();
         });
 
-        // ===================== OPTIMIZED SENSITIVE WORD FILTER =====================
+        // ===================== SÖZ BLOK SİSTEMİ — YENİDƏN QURULDU (DONMA PROBLEMİ HƏLL EDİLDİ) =====================
+        // Əvvəlki versiya hər hərf arasında limitsiz "[^a-z0-9]*" ilə mürəkkəb regex qururdu.
+        // Bu, uzun mesajlarda "catastrophic backtracking"ə səbəb olurdu (eksponensial vaxt = donma).
+        // Yeni yanaşma: mətni normallaşdırıb sadə substring axtarışı aparırıq — həmişə sabit, sürətli işləyir.
         const sensitivePatterns = [
-            'sivil', 'həkim', 'həkin', 'kamekadze', 'kamekadzi', 'komissar', 'vətəndaş', 'dedektiv',
-            'mafiya', 'don', 'hakim', 'doktor', 'polis', 'müstəntiq', 'casus', 'qatil',
+            'sivil', 'hekim', 'kamekadze', 'komissar', 'vetendas', 'dedektiv',
+            'mafiya', 'don', 'hakim', 'doktor', 'polis', 'mustentiq', 'casus', 'qatil',
             'civil', 'doctor', 'kamikaze', 'commissioner', 'citizen', 'detective', 'mafia',
             'police', 'investigator', 'spy', 'killer', 'sheriff', 'judge', 'lawyer',
-            'сивил', 'хəким', 'камикадзе', 'комиссар', 'детектив', 'мафия',
-            'доктор', 'полиция', 'следователь', 'шпион', 'убийца', 'шериф', 'судья',
-            'hekim', 'komiser', 'mafya', 'müfettiş', 'katil', 'şerif',
-            'hekım', 'hekïm', 'hekîm', 'doxtor', 'kamisadze', 'kamisadzi',
-            'komisar', 'detektiv', 'detektif', 'civıl', 'cıvıl', 'sıvıl', 'sivıl'
+            'sivil', 'xekim', 'kamikadze', 'komissar', 'detektiv', 'mafiya',
+            'doktor', 'policiya', 'sledovatel', 'shpion', 'ubiyca', 'sherif', 'sudya',
+            'komiser', 'mafya', 'mufettish', 'katil', 'sherif', 'doxtor', 'komisar'
         ];
 
-        function buildSensitiveRegex() {
-            const obfuscatedPatterns = [];
-            const leetMap = {
-                'a': '[a@4аαΛ]',
-                'e': '[e3еεξ]',
-                'i': '[i1!ıіι|]',
-                'o': '[o0оσø]',
-                'u': '[uüуυµ]',
-                's': '[s5$şṡ]',
-                't': '[t7ţṭ]',
-                'c': '[cçċ]',
-                'g': '[gğġ]',
-                'd': '[dđḍ]',
-                'k': '[kκķ]',
-                'm': '[mμ]',
-                'n': '[nη]',
-                'r': '[rρ]',
-                'v': '[vν]',
-                'y': '[yγ]'
-            };
+        // Oxşar hərfləri (leetspeak, kiril homoqlifləri, Azərbaycan diakritikləri) bazaya çeviririk
+        const NORMALIZE_MAP = {
+            '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's', '!': 'i',
+            'ə': 'e', 'ı': 'i', 'ö': 'o', 'ü': 'u', 'ş': 's', 'ç': 'c', 'ğ': 'g',
+            'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'х': 'x', 'у': 'y', 'і': 'i', 'к': 'k'
+        };
 
-            sensitivePatterns.forEach(word => {
-                let pattern = '';
-                for (const char of word.toLowerCase()) {
-                    if (leetMap[char]) {
-                        pattern += leetMap[char];
-                    } else {
-                        pattern += char;
-                    }
+        function normalizeForFilter(text) {
+            let result = '';
+            const lower = text.toLowerCase();
+            for (let i = 0; i < lower.length; i++) {
+                const ch = lower[i];
+                if (ch === ' ' || ch === '\t' || ch === '\n') {
+                    result += ' '; // boşluq sözlər arası SƏRHƏD kimi qalır (yanlış birləşməni önləyir)
+                    continue;
                 }
-                const sepPattern = pattern.split('').join('[^a-z0-9]*');
-                obfuscatedPatterns.push(sepPattern);
-            });
-
-            const regexString = obfuscatedPatterns.map(p => `(?:^|[^a-z0-9])${p}(?:$|[^a-z0-9])`).join('|');
-            return new RegExp(regexString, 'i');
+                const mapped = NORMALIZE_MAP[ch] || ch;
+                // Yalnız hərf/rəqəmi saxlayırıq — nöqtə, tire, alt xətt və s. tamamilə atılır
+                // (bu, "s.i.v.i.l" kimi TƏK sözün daxilindəki gizlətməni aşkarlayır)
+                if (/[a-z0-9]/.test(mapped)) {
+                    result += mapped;
+                }
+            }
+            return result.replace(/\s+/g, ' ').trim();
         }
-
-        const sensitiveRegex = buildSensitiveRegex();
 
         function containsSensitiveWord(text) {
             if (!text || text.length < 3) return false;
-            return sensitiveRegex.test(text);
+            const normalized = normalizeForFilter(text);
+            const tokens = normalized.split(' ');
+            return tokens.some(token => sensitivePatterns.some(word => token.includes(word)));
         }
 
         function filterSensitiveMessage(text) {
@@ -1800,6 +1816,7 @@
 
                 const myRole = myData.role || "Boşdur";
                 myCurrentRole = myRole; // Əsl rolu saxla (zoom yoxlaması üçün)
+                myIsSmsBlocked = !!myData.smsBlocked; // Admin tərəfindən sms bloklanıbmı?
                 document.getElementById('cabinet-role-box').innerHTML = myRole.split('').join('<br>');
 
                 const alliancePanel = document.getElementById('mafia-alliance-panel');
@@ -1893,6 +1910,11 @@
             const input = document.getElementById('chat-input-field');
             const txt = input.value.trim();
             if (!txt || !currentUsername) return;
+
+            if (myIsSmsBlocked) {
+                alert("Admin sizin mesaj yazmağınızı bloklayıb. Vəzifənizi real danışıqla sübut etməlisiniz.");
+                return;
+            }
 
             // Apply filter before sending
             const filteredText = filterSensitiveMessage(txt);
